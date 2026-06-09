@@ -1,0 +1,128 @@
+Copyright (c) 2026 Oracle and/or its affiliates.
+
+This repository is licensed under the Universal Permissive License 1.0.
+
+This repository does not vendor third-party source code. Third-party
+dependencies are Go modules resolved by the Go toolchain from go.mod and
+go.sum.
+
+The dependency list below is based on the current module build list produced
+by:
+
+    go list -m all
+
+It includes compile-time and test-time modules visible to this source module.
+The upstream module license files remain authoritative.
+
+Custom OpenTelemetry Collector binaries or container images built with OCB may
+include additional receivers, processors, exporters, extensions, providers, or
+runtime assets. Generate and include a separate third-party license notice for
+the final binary or image distribution.
+
+Third-Party Go Modules
+
+| Module | Version | License |
+| --- | --- | --- |
+| cel.dev/expr | v0.25.1 | Apache-2.0 |
+| cloud.google.com/go/compute/metadata | v0.9.0 | Apache-2.0 |
+| github.com/GoogleCloudPlatform/opentelemetry-operations-go/detectors/gcp | v1.31.0 | Apache-2.0 |
+| github.com/cenkalti/backoff/v5 | v5.0.3 | MIT |
+| github.com/cespare/xxhash/v2 | v2.3.0 | MIT |
+| github.com/cncf/xds/go | v0.0.0-20260202195803-dba9d589def2 | Apache-2.0 |
+| github.com/davecgh/go-spew | v1.1.1 | ISC |
+| github.com/envoyproxy/go-control-plane | v0.14.0 | Apache-2.0 |
+| github.com/envoyproxy/go-control-plane/envoy | v1.37.0 | Apache-2.0 |
+| github.com/envoyproxy/go-control-plane/ratelimit | v0.1.0 | Apache-2.0 |
+| github.com/envoyproxy/protoc-gen-validate | v1.3.3 | Apache-2.0 |
+| github.com/go-jose/go-jose/v4 | v4.1.4 | Apache-2.0 |
+| github.com/go-logr/logr | v1.4.3 | Apache-2.0 |
+| github.com/go-logr/stdr | v1.2.2 | Apache-2.0 |
+| github.com/go-viper/mapstructure/v2 | v2.5.0 | MIT |
+| github.com/gobwas/glob | v0.2.3 | MIT |
+| github.com/gofrs/flock | v0.13.0 | BSD-3-Clause |
+| github.com/golang/glog | v1.2.5 | Apache-2.0 |
+| github.com/golang/protobuf | v1.5.4 | BSD-3-Clause |
+| github.com/google/go-cmp | v0.7.0 | BSD-3-Clause |
+| github.com/google/gofuzz | v1.0.0 | Apache-2.0 |
+| github.com/google/uuid | v1.6.0 | BSD-3-Clause |
+| github.com/hashicorp/go-version | v1.9.0 | MPL-2.0 |
+| github.com/hashicorp/golang-lru/v2 | v2.0.7 | MPL-2.0 |
+| github.com/json-iterator/go | v1.1.12 | MIT |
+| github.com/knadh/koanf/maps | v0.1.2 | MIT |
+| github.com/knadh/koanf/providers/confmap | v1.0.0 | MIT |
+| github.com/knadh/koanf/v2 | v2.3.5 | MIT |
+| github.com/kr/pretty | v0.3.1 | MIT |
+| github.com/kr/text | v0.2.0 | MIT |
+| github.com/mitchellh/copystructure | v1.2.0 | MIT |
+| github.com/mitchellh/reflectwalk | v1.0.2 | MIT |
+| github.com/modern-go/concurrent | v0.0.0-20180306012644-bacd9c7ef1dd | Apache-2.0 |
+| github.com/modern-go/reflect2 | v1.0.3-0.20250322232337-35a7c28c31ee | Apache-2.0 |
+| github.com/oracle/oci-go-sdk/v65 | v65.117.0 | UPL-1.0 OR Apache-2.0 |
+| github.com/planetscale/vtprotobuf | v0.6.1-0.20240319094008-0393e58bdf10 | Apache-2.0 |
+| github.com/pmezard/go-difflib | v1.0.0 | BSD-3-Clause |
+| github.com/rogpeppe/go-internal | v1.14.1 | BSD-3-Clause |
+| github.com/sony/gobreaker/v2 | v2.4.0 | MIT |
+| github.com/spiffe/go-spiffe/v2 | v2.6.0 | Apache-2.0 |
+| github.com/stretchr/objx | v0.5.2 | MIT |
+| github.com/stretchr/testify | v1.11.1 | MIT |
+| github.com/youmark/pkcs8 | v0.0.0-20240726163527-a2c0da244d78 | MIT |
+| go.opentelemetry.io/auto/sdk | v1.2.1 | Apache-2.0 |
+| go.opentelemetry.io/collector/client | v1.59.0 | Apache-2.0 |
+| go.opentelemetry.io/collector/component | v1.59.0 | Apache-2.0 |
+| go.opentelemetry.io/collector/component/componenttest | v0.153.0 | Apache-2.0 |
+| go.opentelemetry.io/collector/config/configopaque | v1.59.0 | Apache-2.0 |
+| go.opentelemetry.io/collector/config/configoptional | v1.59.0 | Apache-2.0 |
+| go.opentelemetry.io/collector/config/configretry | v1.59.0 | Apache-2.0 |
+| go.opentelemetry.io/collector/confmap | v1.59.0 | Apache-2.0 |
+| go.opentelemetry.io/collector/confmap/xconfmap | v0.153.0 | Apache-2.0 |
+| go.opentelemetry.io/collector/consumer | v1.59.0 | Apache-2.0 |
+| go.opentelemetry.io/collector/consumer/consumererror | v0.153.0 | Apache-2.0 |
+| go.opentelemetry.io/collector/consumer/consumertest | v0.153.0 | Apache-2.0 |
+| go.opentelemetry.io/collector/consumer/xconsumer | v0.153.0 | Apache-2.0 |
+| go.opentelemetry.io/collector/exporter | v1.59.0 | Apache-2.0 |
+| go.opentelemetry.io/collector/exporter/exporterhelper | v0.153.0 | Apache-2.0 |
+| go.opentelemetry.io/collector/exporter/exportertest | v0.153.0 | Apache-2.0 |
+| go.opentelemetry.io/collector/exporter/xexporter | v0.153.0 | Apache-2.0 |
+| go.opentelemetry.io/collector/extension | v1.59.0 | Apache-2.0 |
+| go.opentelemetry.io/collector/extension/extensiontest | v0.153.0 | Apache-2.0 |
+| go.opentelemetry.io/collector/extension/xextension | v0.153.0 | Apache-2.0 |
+| go.opentelemetry.io/collector/featuregate | v1.59.0 | Apache-2.0 |
+| go.opentelemetry.io/collector/internal/componentalias | v0.153.0 | Apache-2.0 |
+| go.opentelemetry.io/collector/internal/testutil | v0.153.0 | Apache-2.0 |
+| go.opentelemetry.io/collector/pdata | v1.59.0 | Apache-2.0 |
+| go.opentelemetry.io/collector/pdata/pprofile | v0.153.0 | Apache-2.0 |
+| go.opentelemetry.io/collector/pdata/testdata | v0.153.0 | Apache-2.0 |
+| go.opentelemetry.io/collector/pdata/xpdata | v0.153.0 | Apache-2.0 |
+| go.opentelemetry.io/collector/pipeline | v1.59.0 | Apache-2.0 |
+| go.opentelemetry.io/collector/pipeline/xpipeline | v0.153.0 | Apache-2.0 |
+| go.opentelemetry.io/collector/receiver | v1.59.0 | Apache-2.0 |
+| go.opentelemetry.io/collector/receiver/receivertest | v0.153.0 | Apache-2.0 |
+| go.opentelemetry.io/collector/receiver/xreceiver | v0.153.0 | Apache-2.0 |
+| go.opentelemetry.io/contrib/detectors/gcp | v1.42.0 | Apache-2.0 |
+| go.opentelemetry.io/otel | v1.44.0 | Apache-2.0 |
+| go.opentelemetry.io/otel/metric | v1.44.0 | Apache-2.0 |
+| go.opentelemetry.io/otel/metric/x | v0.66.0 | Apache-2.0 |
+| go.opentelemetry.io/otel/sdk | v1.44.0 | Apache-2.0 |
+| go.opentelemetry.io/otel/sdk/metric | v1.44.0 | Apache-2.0 |
+| go.opentelemetry.io/otel/trace | v1.44.0 | Apache-2.0 |
+| go.opentelemetry.io/proto/slim/otlp | v1.10.0 | Apache-2.0 |
+| go.opentelemetry.io/proto/slim/otlp/collector/profiles/v1development | v0.3.0 | Apache-2.0 |
+| go.opentelemetry.io/proto/slim/otlp/profiles/v1development | v0.3.0 | Apache-2.0 |
+| go.uber.org/goleak | v1.3.0 | MIT |
+| go.uber.org/multierr | v1.11.0 | MIT |
+| go.uber.org/zap | v1.28.0 | MIT |
+| go.yaml.in/yaml/v3 | v3.0.4 | MIT AND Apache-2.0 |
+| golang.org/x/crypto | v0.53.0 | BSD-3-Clause |
+| golang.org/x/net | v0.55.0 | BSD-3-Clause |
+| golang.org/x/oauth2 | v0.36.0 | BSD-3-Clause |
+| golang.org/x/sync | v0.20.0 | BSD-3-Clause |
+| golang.org/x/sys | v0.46.0 | BSD-3-Clause |
+| golang.org/x/term | v0.44.0 | BSD-3-Clause |
+| golang.org/x/text | v0.38.0 | BSD-3-Clause |
+| gonum.org/v1/gonum | v0.17.0 | BSD-3-Clause |
+| google.golang.org/genproto/googleapis/api | v0.0.0-20260226221140-a57be14db171 | Apache-2.0 |
+| google.golang.org/genproto/googleapis/rpc | v0.0.0-20260608224507-4308a22a1bab | Apache-2.0 |
+| google.golang.org/grpc | v1.81.1 | Apache-2.0 |
+| google.golang.org/protobuf | v1.36.11 | BSD-3-Clause |
+| gopkg.in/check.v1 | v1.0.0-20201130134442-10cb98267c6c | BSD-2-Clause |
+| gopkg.in/yaml.v3 | v3.0.1 | MIT AND Apache-2.0 |

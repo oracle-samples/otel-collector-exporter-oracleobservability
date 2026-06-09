@@ -1,0 +1,21 @@
+type: oracleobservability
+
+status:
+  class: exporter
+  stability:
+    development: [logs]
+  distributions: []
+  codeowners:
+    active: []
+
+tests:
+  config:
+    auth_type: config_file
+    namespace: example-namespace
+    log_group_id: example-log-group-id
+    oci_config:
+      fingerprint: test-fingerprint
+      private_key: test-key
+      tenancy: ocid1.tenancy.oc1..example
+      region: us-phoenix-1
+      user: ocid1.user.oc1..example
