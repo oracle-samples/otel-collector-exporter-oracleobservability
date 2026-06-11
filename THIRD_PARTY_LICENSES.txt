@@ -3,13 +3,13 @@ Copyright (c) 2026 Oracle and/or its affiliates.
 This repository is licensed under the Universal Permissive License 1.0.
 
 This repository does not vendor third-party source code. Third-party
-dependencies are Go modules resolved by the Go toolchain from go.mod and
-go.sum.
+dependencies are Go modules resolved by the Go toolchain from
+oracleobservabilityexporter/go.mod and oracleobservabilityexporter/go.sum.
 
 The dependency list below is based on the current module build list produced
 by:
 
-    go list -m all
+    go -C oracleobservabilityexporter list -m all
 
 It includes compile-time and test-time modules visible to this source module.
 The upstream module license files remain authoritative.

@@ -1,9 +1,9 @@
 # Go build and test output.
 /bin/
-/coverage.out
-/coverage.html
-/*.test
-/*.prof
+coverage.out
+coverage.html
+*.test
+*.prof
 
 # Local OCB binaries and generated custom collectors.
 /ocb/

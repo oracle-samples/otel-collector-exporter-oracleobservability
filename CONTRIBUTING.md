@@ -58,10 +58,8 @@ local checkout:
 
 ```yaml
 exporters:
-  - gomod: github.com/oracle-samples/otel-collector-exporter-oracleobservability v0.153.0
-    import: github.com/oracle-samples/otel-collector-exporter-oracleobservability/oracleobservabilityexporter
-    name: oracleobservabilityexporter
-    path: /absolute/path/to/otel-collector-exporter-oracleobservability
+  - gomod: github.com/oracle-samples/otel-collector-exporter-oracleobservability/oracleobservabilityexporter v0.153.0
+    path: /absolute/path/to/otel-collector-exporter-oracleobservability/oracleobservabilityexporter
 ```
 
 Then run:
@@ -84,9 +82,9 @@ This compiles a collector binary using your local code.
 ### Run local quality gates
 
 ```bash
-go test ./...
-go test -race ./...
-go vet ./...
+go -C oracleobservabilityexporter test ./...
+go -C oracleobservabilityexporter test -race ./...
+go -C oracleobservabilityexporter vet ./...
 ```
 
 ## Code of conduct

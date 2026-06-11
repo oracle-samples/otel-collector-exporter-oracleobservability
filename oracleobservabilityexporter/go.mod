@@ -1,4 +1,4 @@
-module github.com/oracle-samples/otel-collector-exporter-oracleobservability
+module github.com/oracle-samples/otel-collector-exporter-oracleobservability/oracleobservabilityexporter
 
 go 1.25.0
 

@@ -7,7 +7,7 @@ this exporter.
 - Signal support: `logs`
 - Component type: `oracleobservability`
 - Stability: `stable`
-- Go import path: `github.com/oracle-samples/otel-collector-exporter-oracleobservability/oracleobservabilityexporter`
+- Go module path: `github.com/oracle-samples/otel-collector-exporter-oracleobservability/oracleobservabilityexporter`
 
 ## Version Compatibility
 
@@ -17,6 +17,11 @@ OpenTelemetry Collector/Contrib version used to build your custom collector.
 | Oracle Observability Exporter | OpenTelemetry Collector/Contrib |
 | --- | --- |
 | `v0.153.x` | `v0.153.0` |
+
+Because this exporter is published as a Go module in the
+`oracleobservabilityexporter` folder, repository tags use the submodule tag
+format, for example `oracleobservabilityexporter/v0.153.0`. In an OCB manifest,
+use only the module version, for example `v0.153.0`.
 
 ## Quick Start
 
@@ -48,14 +53,13 @@ OpenTelemetry Collector/Contrib version used to build your custom collector.
 - `log_group_id`: OCI Log Group OCID (used for authorization and routing).
 - `auth_type`: `config_file` or `instance_principal`.
 
-### Required Collector Extension For Persistent Queue
+### Required Collector Extension
 
-The production configuration in this README uses persistent queue storage:
-`sending_queue.storage: file_storage`. When this storage extension is
-referenced, the Collector startup configuration must define `file_storage` and
-include it in `service.extensions`. The Collector will fail to start if
-`sending_queue.storage: file_storage` is configured but the `file_storage`
-extension is missing.
+The Collector startup configuration must define the `file_storage` extension
+and include it in `service.extensions`. This exporter requires `file_storage`
+even when `sending_queue.storage` is not explicitly configured. The production
+configuration in this README also uses `file_storage` for persistent queue
+storage with `sending_queue.storage: file_storage`.
 
 ### Authentication Fields
 
@@ -270,7 +274,7 @@ For array attributes, map them to Log Analytics fields that support multi-valued
 
 ## Use This Exporter In a Custom Collector
 
-Use OpenTelemetry Collector Builder (`ocb`) to build your own distribution with this exporter.
+Use [OpenTelemetry Collector Builder (`ocb`)](https://opentelemetry.io/docs/collector/extend/ocb/) to build your own distribution with this exporter.
 
 ### 1. Create builder manifest (`builder-config.yaml`)
 
@@ -282,9 +286,7 @@ dist:
   output_path: ./_build
 
 exporters:
-  - gomod: github.com/oracle-samples/otel-collector-exporter-oracleobservability v0.153.0
-    import: github.com/oracle-samples/otel-collector-exporter-oracleobservability/oracleobservabilityexporter
-    name: oracleobservabilityexporter
+  - gomod: github.com/oracle-samples/otel-collector-exporter-oracleobservability/oracleobservabilityexporter v0.153.0
 
 receivers:
   - gomod: go.opentelemetry.io/collector/receiver/otlpreceiver v0.153.0

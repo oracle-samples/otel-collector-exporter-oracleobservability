@@ -3,7 +3,7 @@ name: Release
 on:
   push:
     tags:
-      - "v*"
+      - "oracleobservabilityexporter/v*"
 
 permissions:
   contents: write
@@ -13,8 +13,7 @@ jobs:
     name: Validate and publish release
     runs-on: ubuntu-24.04
     env:
-      MODULE_PATH: github.com/oracle-samples/otel-collector-exporter-oracleobservability
-      EXPORTER_IMPORT: github.com/oracle-samples/otel-collector-exporter-oracleobservability/oracleobservabilityexporter
+      MODULE_PATH: github.com/oracle-samples/otel-collector-exporter-oracleobservability/oracleobservabilityexporter
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -24,16 +23,23 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version-file: go.mod
+          go-version-file: oracleobservabilityexporter/go.mod
           cache: true
+          cache-dependency-path: oracleobservabilityexporter/go.sum
 
       - name: Validate tag and Collector dependency line
         id: release-line
         shell: bash
         run: |
-          version="${GITHUB_REF_NAME}"
+          prefix="oracleobservabilityexporter/"
+          if [[ "${GITHUB_REF_NAME}" != ${prefix}v* ]]; then
+            echo "Release tags must use ${prefix}vMAJOR.MINOR.PATCH, got ${GITHUB_REF_NAME}"
+            exit 1
+          fi
+
+          version="${GITHUB_REF_NAME#${prefix}}"
           if [[ ! "$version" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "Release tags must use vMAJOR.MINOR.PATCH, got ${version}"
+            echo "Release tags must use ${prefix}vMAJOR.MINOR.PATCH, got ${GITHUB_REF_NAME}"
             exit 1
           fi
 
@@ -46,26 +52,30 @@ jobs:
           fi
 
           expected="v0.${minor}.0"
-          mismatches="$(go list -m all | awk -v expected="$expected" '$1 ~ /^go\.opentelemetry\.io\/collector\// && $2 ~ /^v0\./ && $2 != expected {print}')"
+          mismatches="$(go -C oracleobservabilityexporter list -m all | awk -v expected="$expected" '$1 ~ /^go\.opentelemetry\.io\/collector\// && $2 ~ /^v0\./ && $2 != expected {print}')"
           if [ -n "$mismatches" ]; then
             echo "Collector v0 module dependencies must match ${expected}:"
             echo "$mismatches"
             exit 1
           fi
+          echo "EXPORTER_VERSION=${version}" >> "$GITHUB_ENV"
           echo "COLLECTOR_VERSION=${expected}" >> "$GITHUB_ENV"
           echo "COLLECTOR_VERSION_NO_V=${expected#v}" >> "$GITHUB_ENV"
           echo "collector_version=${expected}" >> "$GITHUB_OUTPUT"
 
       - name: Check go mod tidy
         shell: bash
+        working-directory: oracleobservabilityexporter
         run: |
           go mod tidy
           git diff --exit-code go.mod go.sum
 
       - name: Run tests
+        working-directory: oracleobservabilityexporter
         run: go test ./...
 
       - name: Run vet
+        working-directory: oracleobservabilityexporter
         run: go vet ./...
 
       - name: Install OpenTelemetry Collector Builder
@@ -84,9 +94,7 @@ jobs:
 
           exporters:
             - gomod: go.opentelemetry.io/collector/exporter/debugexporter ${COLLECTOR_VERSION}
-            - gomod: ${MODULE_PATH} ${GITHUB_REF_NAME}
-              import: ${EXPORTER_IMPORT}
-              name: oracleobservabilityexporter
+            - gomod: ${MODULE_PATH} ${EXPORTER_VERSION}
 
           receivers:
             - gomod: go.opentelemetry.io/collector/receiver/otlpreceiver ${COLLECTOR_VERSION}
@@ -104,7 +112,7 @@ jobs:
             - gomod: go.opentelemetry.io/collector/confmap/provider/yamlprovider v1.59.0
 
           replaces:
-            - ${MODULE_PATH} => ${GITHUB_WORKSPACE}
+            - ${MODULE_PATH} => ${GITHUB_WORKSPACE}/oracleobservabilityexporter
           EOF
 
       - name: Build custom collector release smoke binary

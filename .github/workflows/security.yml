@@ -23,13 +23,15 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version-file: go.mod
+          go-version-file: oracleobservabilityexporter/go.mod
           cache: true
+          cache-dependency-path: oracleobservabilityexporter/go.sum
 
       - name: Install govulncheck
         run: go install golang.org/x/vuln/cmd/govulncheck@latest
 
       - name: Run govulncheck
+        working-directory: oracleobservabilityexporter
         run: |
           "$(go env GOPATH)/bin/govulncheck" ./...
 
@@ -47,8 +49,9 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version-file: go.mod
+          go-version-file: oracleobservabilityexporter/go.mod
           cache: true
+          cache-dependency-path: oracleobservabilityexporter/go.sum
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v4
@@ -56,6 +59,7 @@ jobs:
           languages: go
 
       - name: Build for CodeQL
+        working-directory: oracleobservabilityexporter
         run: go test ./...
 
       - name: Perform CodeQL Analysis

@@ -4,10 +4,10 @@ fmt:
 	gofmt -w $$(find oracleobservabilityexporter -name '*.go')
 
 test:
-	go test ./...
+	go -C oracleobservabilityexporter test ./...
 
 vet:
-	go vet ./...
+	go -C oracleobservabilityexporter vet ./...
 
 tidy:
-	go mod tidy
+	go -C oracleobservabilityexporter mod tidy

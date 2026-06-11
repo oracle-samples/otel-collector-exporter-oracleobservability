@@ -20,8 +20,7 @@ jobs:
     runs-on: ubuntu-24.04
     env:
       COLLECTOR_VERSION: v0.153.0
-      MODULE_PATH: github.com/oracle-samples/otel-collector-exporter-oracleobservability
-      EXPORTER_IMPORT: github.com/oracle-samples/otel-collector-exporter-oracleobservability/oracleobservabilityexporter
+      MODULE_PATH: github.com/oracle-samples/otel-collector-exporter-oracleobservability/oracleobservabilityexporter
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -29,8 +28,9 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version-file: go.mod
+          go-version-file: oracleobservabilityexporter/go.mod
           cache: true
+          cache-dependency-path: oracleobservabilityexporter/go.sum
 
       - name: Install OpenTelemetry Collector Builder
         run: go install go.opentelemetry.io/collector/cmd/builder@${COLLECTOR_VERSION}
@@ -49,8 +49,6 @@ jobs:
           exporters:
             - gomod: go.opentelemetry.io/collector/exporter/debugexporter ${COLLECTOR_VERSION}
             - gomod: ${MODULE_PATH} ${COLLECTOR_VERSION}
-              import: ${EXPORTER_IMPORT}
-              name: oracleobservabilityexporter
 
           receivers:
             - gomod: go.opentelemetry.io/collector/receiver/otlpreceiver ${COLLECTOR_VERSION}
@@ -68,7 +66,7 @@ jobs:
             - gomod: go.opentelemetry.io/collector/confmap/provider/yamlprovider v1.59.0
 
           replaces:
-            - ${MODULE_PATH} => ${GITHUB_WORKSPACE}
+            - ${MODULE_PATH} => ${GITHUB_WORKSPACE}/oracleobservabilityexporter
           EOF
           cat "${RUNNER_TEMP}/builder-config.yaml"
 
