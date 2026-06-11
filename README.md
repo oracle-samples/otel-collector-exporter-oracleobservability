@@ -1,11 +1,33 @@
 # Oracle Observability Exporter
 
 The `oracleobservability` exporter sends OpenTelemetry **logs** from an OpenTelemetry Collector to [OCI Log Analytics](https://docs.oracle.com/en-us/iaas/log-analytics/home.htm).
+Use it by building a custom OpenTelemetry Collector distribution that includes
+this exporter.
 
 - Signal support: `logs`
 - Component type: `oracleobservability`
 - Stability: `stable`
 - Go import path: `github.com/oracle-samples/otel-collector-exporter-oracleobservability/oracleobservabilityexporter`
+
+## Version Compatibility
+
+Use the table below to choose the Oracle Observability Exporter version for the
+OpenTelemetry Collector/Contrib version used to build your custom collector.
+
+| Oracle Observability Exporter | OpenTelemetry Collector/Contrib |
+| --- | --- |
+| `v0.153.x` | `v0.153.0` |
+
+## Quick Start
+
+1. Choose the exporter version from the compatibility table.
+2. Add the exporter to an OpenTelemetry Collector Builder (`ocb`) manifest. See [Use This Exporter In a Custom Collector](#use-this-exporter-in-a-custom-collector).
+3. Configure the Collector with:
+   - `namespace`
+   - `log_group_id`
+   - `auth_type`
+   - persistent queue storage using `file_storage`
+4. Run the custom Collector with the configuration file shown in [Example Collector Config](#example-collector-config).
 
 ## What This Exporter Does
 
@@ -26,9 +48,14 @@ The `oracleobservability` exporter sends OpenTelemetry **logs** from an OpenTele
 - `log_group_id`: OCI Log Group OCID (used for authorization and routing).
 - `auth_type`: `config_file` or `instance_principal`.
 
-### Required Collector Extension
+### Required Collector Extension For Persistent Queue
 
-The startup configuration must define the `file_storage` extension and include it in `service.extensions`. The recommended exporter queue configuration sets `sending_queue.storage: file_storage`; the collector will fail to start if that storage extension is referenced but not configured.
+The production configuration in this README uses persistent queue storage:
+`sending_queue.storage: file_storage`. When this storage extension is
+referenced, the Collector startup configuration must define `file_storage` and
+include it in `service.extensions`. The Collector will fail to start if
+`sending_queue.storage: file_storage` is configured but the `file_storage`
+extension is missing.
 
 ### Authentication Fields
 
@@ -70,7 +97,7 @@ Default settings:
 - `sending_queue.num_consumers: 10`
 - `sending_queue.queue_size: 1000`
 - `sending_queue.block_on_overflow: true`
-- `sending_queue.storage: <unset>` (in-memory queue by exporter default)
+- `sending_queue.storage`: set to `file_storage` in the production example below
 - `retry_on_failure.enabled: true`
 - `retry_on_failure.initial_interval: 5s`
 - `retry_on_failure.max_interval: 30s`
@@ -79,9 +106,26 @@ Default settings:
 
 ## Example Collector Config
 
-### A) Config file authentication
+### A) Config file authentication with persistent queue
 
 ```yaml
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  memory_limiter:
+    check_interval: 1s
+    limit_mib: 512
+    spike_limit_mib: 128
+  batch:
+    timeout: 5s
+    send_batch_size: 1024
+
 exporters:
   oracleobservability:
     auth_type: config_file
@@ -120,6 +164,9 @@ service:
 
 ### B) Inline OCI config authentication
 
+Replace only the `exporters.oracleobservability` block from the full example
+above:
+
 ```yaml
 exporters:
   oracleobservability:
@@ -139,6 +186,9 @@ exporters:
 
 ### C) Instance principal authentication
 
+Replace only the `exporters.oracleobservability` block from the full example
+above:
+
 ```yaml
 exporters:
   oracleobservability:
@@ -146,6 +196,77 @@ exporters:
     namespace: "<oci-loganalytics-namespace>"
     log_group_id: "ocid1.loganalyticsloggroup.oc1..<unique_id>"
 ```
+
+## Advanced Log Source and Attribute Handling
+
+OCI Log Analytics stores OpenTelemetry attributes from resource, scope, and log
+record levels with each log record. By default, logs uploaded through the
+[`UploadOtlpLogs` API](https://docs.oracle.com/en-us/iaas/log-analytics/doc/upload-opentelemetry-logs.html)
+are processed with the Oracle-defined OpenTelemetry Logs log source.
+
+Use the attributes below when you want to select a specific Log Analytics log
+source or map OpenTelemetry attributes into Log Analytics fields. These are
+OpenTelemetry attributes on the log data, not exporter configuration fields. Set
+them before the exporter runs, for example with the `transform` processor.
+
+### Override the Log Analytics log source
+
+Set `oci_la_log_source` to route records to a specific Log Analytics log source.
+This is useful when one collector pipeline reads logs from multiple files or
+formats and each source needs a different parser in Log Analytics.
+
+Set a single log source for all records in a resource:
+
+```yaml
+processors:
+  transform/log_source:
+    log_statements:
+      - context: resource
+        statements:
+          - set(attributes["oci_la_log_source"], "LinuxSyslogSource")
+```
+
+Set the log source based on the file path from the `filelog` receiver:
+
+```yaml
+processors:
+  transform/log_source:
+    log_statements:
+      - context: log
+        statements:
+          - set(attributes["oci_la_log_source"], "LinuxSyslogSource") where attributes["log.file.path"] == "/var/log/messages"
+          - set(attributes["oci_la_log_source"], "ApacheTomcatAccessLogSource") where IsMatch(attributes["log.file.path"], ".*/access_log.*")
+```
+
+### Map attributes to Log Analytics fields
+
+Set `oci_la_attribute_mapping` when OpenTelemetry attributes should be extracted
+into specific Log Analytics fields. The value must be a JSON string containing
+mapping objects.
+
+Example mapping:
+
+```yaml
+processors:
+  transform/attribute_mapping:
+    log_statements:
+      - context: resource
+        statements:
+          - set(attributes["oci_la_attribute_mapping"], "[{\"attributeName\":\"service.name\",\"laFieldName\":\"Application\"},{\"attributeName\":\"deployment.environment\",\"laFieldName\":\"Environment\"},{\"attributeName\":\"event_type\",\"laFieldName\":\"Event Type\"}]")
+```
+
+For nested map attributes, include `childAttributeName`:
+
+```yaml
+processors:
+  transform/attribute_mapping:
+    log_statements:
+      - context: resource
+        statements:
+          - set(attributes["oci_la_attribute_mapping"], "[{\"attributeName\":\"system\",\"childAttributeName\":\"env\",\"laFieldName\":\"Environment\"}]")
+```
+
+For array attributes, map them to Log Analytics fields that support multi-valued data.
 
 ## Use This Exporter In a Custom Collector
 
@@ -161,7 +282,7 @@ dist:
   output_path: ./_build
 
 exporters:
-  - gomod: github.com/oracle-samples/otel-collector-exporter-oracleobservability v0.1.0
+  - gomod: github.com/oracle-samples/otel-collector-exporter-oracleobservability v0.153.0
     import: github.com/oracle-samples/otel-collector-exporter-oracleobservability/oracleobservabilityexporter
     name: oracleobservabilityexporter
 
@@ -193,47 +314,6 @@ builder --config builder-config.yaml
 
 ```bash
 ./_build/otelcol-custom --config /path/to/collector-config.yaml
-```
-
-## Build From a Local Checkout
-
-You can validate exporter changes from your local checkout before publishing a release tag.
-
-### 1) Build a local custom collector with your working tree
-
-Use `path` to point to your local checkout:
-
-```yaml
-exporters:
-  - gomod: github.com/oracle-samples/otel-collector-exporter-oracleobservability v0.1.0
-    import: github.com/oracle-samples/otel-collector-exporter-oracleobservability/oracleobservabilityexporter
-    name: oracleobservabilityexporter
-    path: /absolute/path/to/otel-collector-exporter-oracleobservability
-```
-
-Then run:
-
-```bash
-builder --config builder-config.yaml
-```
-
-This compiles a collector binary using your unmerged local code.
-
-### 2) Run a smoke test pipeline
-
-- Start collector with `oracleobservability` exporter configured.
-- Send logs via OTLP (for example using `otel-cli`, SDK app, or another collector).
-- Verify:
-  - collector starts successfully
-  - logs are exported to OCI Log Analytics
-  - retry/queue behavior is visible under transient failures
-
-### 3) Run local quality gates
-
-```bash
-go test ./...
-go test -race ./...
-go vet ./...
 ```
 
 ## OCI IAM Policies

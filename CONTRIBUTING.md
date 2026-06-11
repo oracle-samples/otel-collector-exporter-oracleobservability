@@ -46,6 +46,49 @@ can be accepted.
    your changes. Ensure that you reference the issue you created as well.
 1. We will assign the pull request to 2-3 people for review before it is merged.
 
+## Local validation
+
+You can validate exporter changes from your local checkout before publishing a
+release tag.
+
+### Build a local custom collector with your working tree
+
+Use `path` in the OpenTelemetry Collector Builder manifest to point to your
+local checkout:
+
+```yaml
+exporters:
+  - gomod: github.com/oracle-samples/otel-collector-exporter-oracleobservability v0.153.0
+    import: github.com/oracle-samples/otel-collector-exporter-oracleobservability/oracleobservabilityexporter
+    name: oracleobservabilityexporter
+    path: /absolute/path/to/otel-collector-exporter-oracleobservability
+```
+
+Then run:
+
+```bash
+builder --config builder-config.yaml
+```
+
+This compiles a collector binary using your local code.
+
+### Run a smoke test pipeline
+
+- Start the Collector with the `oracleobservability` exporter configured.
+- Send logs via OTLP, for example using `otel-cli`, an SDK app, or another Collector.
+- Verify that:
+  - the Collector starts successfully
+  - logs are exported to OCI Log Analytics
+  - retry and queue behavior is visible under transient failures
+
+### Run local quality gates
+
+```bash
+go test ./...
+go test -race ./...
+go vet ./...
+```
+
 ## Code of conduct
 
 Follow the [Golden Rule](https://en.wikipedia.org/wiki/Golden_Rule). If you'd

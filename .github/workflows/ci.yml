@@ -1,0 +1,61 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Go quality checks
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Check formatting
+        shell: bash
+        run: |
+          files="$(gofmt -l $(find oracleobservabilityexporter -name '*.go' -type f))"
+          if [ -n "$files" ]; then
+            echo "The following files are not gofmt-formatted:"
+            echo "$files"
+            exit 1
+          fi
+
+      - name: Check go mod tidy
+        shell: bash
+        run: |
+          go mod tidy
+          git diff --exit-code go.mod go.sum
+
+      - name: Run vet
+        run: go vet ./...
+
+      - name: Run unit tests
+        run: go test -coverprofile=coverage.out -covermode=atomic ./...
+
+      - name: Run race tests
+        run: go test -race ./...
+
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage.out
+          if-no-files-found: error
+
