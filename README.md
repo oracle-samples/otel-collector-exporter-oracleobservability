@@ -94,7 +94,7 @@ Supported under this exporter:
 - `sending_queue`
 - `retry_on_failure`
 
-Default settings:
+Exporter default settings:
 
 - `auth_type: config_file`
 - `sending_queue.enabled: true`
@@ -112,6 +112,15 @@ Default settings:
 
 ### A) Config file authentication with persistent queue
 
+The values below for `memory_limiter`, `timeout`, `sending_queue`, and
+`retry_on_failure` are sample starting points only. Tune them for your log
+volume, available memory, storage performance, and operational requirements.
+The `batch` processor is recommended; this example uses `timeout: 30s` and
+`send_batch_size: 1024` as a starting point.
+
+Set `file_storage.directory` to a durable, writable path for your Collector
+deployment.
+
 ```yaml
 receivers:
   otlp:
@@ -127,7 +136,7 @@ processors:
     limit_mib: 512
     spike_limit_mib: 128
   batch:
-    timeout: 5s
+    timeout: 30s
     send_batch_size: 1024
 
 exporters:
@@ -154,7 +163,7 @@ exporters:
 
 extensions:
   file_storage:
-    directory: /tmp/otel/file_storage
+    directory: "<path_to_storage>"
     create_directory: true
 
 service:
