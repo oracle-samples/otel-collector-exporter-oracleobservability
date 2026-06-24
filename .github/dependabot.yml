@@ -1,0 +1,31 @@
+version: 2
+updates:
+  - package-ecosystem: gomod
+    directory: /oracleobservabilityexporter
+    schedule:
+      interval: weekly
+      day: monday
+      time: "10:00"
+      timezone: Asia/Kolkata
+    open-pull-requests-limit: 5
+    groups:
+      otel-collector:
+        patterns:
+          - go.opentelemetry.io/collector*
+          - github.com/open-telemetry/opentelemetry-collector-contrib*
+      oci-sdk:
+        patterns:
+          - github.com/oracle/oci-go-sdk*
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "10:00"
+      timezone: Asia/Kolkata
+    open-pull-requests-limit: 5
+    groups:
+      github-actions:
+        patterns:
+          - "*"

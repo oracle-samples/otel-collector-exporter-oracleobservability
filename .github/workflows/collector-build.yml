@@ -1,0 +1,87 @@
+name: Collector Build
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ocb-smoke:
+    name: Build custom collector with oracleobservabilityexporter
+    runs-on: ubuntu-24.04
+    env:
+      COLLECTOR_VERSION: v0.153.0
+      MODULE_PATH: github.com/oracle-samples/otel-collector-exporter-oracleobservability/oracleobservabilityexporter
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: oracleobservabilityexporter/go.mod
+          cache: true
+          cache-dependency-path: oracleobservabilityexporter/go.sum
+
+      - name: Install OpenTelemetry Collector Builder
+        run: go install go.opentelemetry.io/collector/cmd/builder@${COLLECTOR_VERSION}
+
+      - name: Write temporary builder manifest
+        shell: bash
+        run: |
+          cat > "${RUNNER_TEMP}/builder-config.yaml" <<EOF
+          dist:
+            module: ${MODULE_PATH}/ci/otelcol
+            name: otelcol-oracleobservability-ci
+            description: CI collector with Oracle Observability exporter
+            output_path: ${RUNNER_TEMP}/otelcol-oracleobservability-ci
+            otelcol_version: 0.153.0
+
+          exporters:
+            - gomod: go.opentelemetry.io/collector/exporter/debugexporter ${COLLECTOR_VERSION}
+            - gomod: ${MODULE_PATH} ${COLLECTOR_VERSION}
+
+          receivers:
+            - gomod: go.opentelemetry.io/collector/receiver/otlpreceiver ${COLLECTOR_VERSION}
+
+          processors:
+            - gomod: go.opentelemetry.io/collector/processor/batchprocessor ${COLLECTOR_VERSION}
+            - gomod: go.opentelemetry.io/collector/processor/memorylimiterprocessor ${COLLECTOR_VERSION}
+
+          extensions:
+            - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/storage/filestorage ${COLLECTOR_VERSION}
+
+          providers:
+            - gomod: go.opentelemetry.io/collector/confmap/provider/envprovider v1.59.0
+            - gomod: go.opentelemetry.io/collector/confmap/provider/fileprovider v1.59.0
+            - gomod: go.opentelemetry.io/collector/confmap/provider/yamlprovider v1.59.0
+
+          replaces:
+            - ${MODULE_PATH} => ${GITHUB_WORKSPACE}/oracleobservabilityexporter
+          EOF
+          cat "${RUNNER_TEMP}/builder-config.yaml"
+
+      - name: Build custom collector
+        run: |
+          "$(go env GOPATH)/bin/builder" --config "${RUNNER_TEMP}/builder-config.yaml"
+
+      - name: Check custom collector binary
+        shell: bash
+        run: |
+          collector="${RUNNER_TEMP}/otelcol-oracleobservability-ci/otelcol-oracleobservability-ci"
+          "$collector" --version
+          if "$collector" components > "${RUNNER_TEMP}/components.txt" 2> "${RUNNER_TEMP}/components.err"; then
+            grep -q "oracleobservability" "${RUNNER_TEMP}/components.txt"
+          else
+            echo "components command is unavailable; --version smoke check passed"
+            cat "${RUNNER_TEMP}/components.err"
+          fi

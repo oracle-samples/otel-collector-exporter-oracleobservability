@@ -1,0 +1,23 @@
+# Go build and test output.
+/bin/
+coverage.out
+coverage.html
+*.test
+*.prof
+
+# Local OCB binaries and generated custom collectors.
+/ocb/
+/builder-config/
+/otelcol/
+
+# Local collector configs and Go workspaces.
+/config.yaml
+
+# Local notes and helper scripts.
+/LOCAL_COMMANDS.md
+/build-otelcol-artifacts.sh
+
+# OS and editor files.
+.DS_Store
+.idea/
+.vscode/

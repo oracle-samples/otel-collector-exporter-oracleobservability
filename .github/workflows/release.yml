@@ -1,0 +1,127 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "oracleobservabilityexporter/v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Validate and publish release
+    runs-on: ubuntu-24.04
+    env:
+      MODULE_PATH: github.com/oracle-samples/otel-collector-exporter-oracleobservability/oracleobservabilityexporter
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: oracleobservabilityexporter/go.mod
+          cache: true
+          cache-dependency-path: oracleobservabilityexporter/go.sum
+
+      - name: Validate tag and Collector dependency line
+        id: release-line
+        shell: bash
+        run: |
+          prefix="oracleobservabilityexporter/"
+          if [[ "${GITHUB_REF_NAME}" != ${prefix}v* ]]; then
+            echo "Release tags must use ${prefix}vMAJOR.MINOR.PATCH, got ${GITHUB_REF_NAME}"
+            exit 1
+          fi
+
+          version="${GITHUB_REF_NAME#${prefix}}"
+          if [[ ! "$version" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Release tags must use ${prefix}vMAJOR.MINOR.PATCH, got ${GITHUB_REF_NAME}"
+            exit 1
+          fi
+
+          major="${version#v}"
+          major="${major%%.*}"
+          minor="$(printf '%s' "$version" | cut -d. -f2)"
+          if [ "$major" != "0" ]; then
+            echo "This release workflow currently supports the v0 Collector-aligned release line only."
+            exit 1
+          fi
+
+          expected="v0.${minor}.0"
+          mismatches="$(go -C oracleobservabilityexporter list -m all | awk -v expected="$expected" '$1 ~ /^go\.opentelemetry\.io\/collector\// && $2 ~ /^v0\./ && $2 != expected {print}')"
+          if [ -n "$mismatches" ]; then
+            echo "Collector v0 module dependencies must match ${expected}:"
+            echo "$mismatches"
+            exit 1
+          fi
+          echo "EXPORTER_VERSION=${version}" >> "$GITHUB_ENV"
+          echo "COLLECTOR_VERSION=${expected}" >> "$GITHUB_ENV"
+          echo "COLLECTOR_VERSION_NO_V=${expected#v}" >> "$GITHUB_ENV"
+          echo "collector_version=${expected}" >> "$GITHUB_OUTPUT"
+
+      - name: Check go mod tidy
+        shell: bash
+        working-directory: oracleobservabilityexporter
+        run: |
+          go mod tidy
+          git diff --exit-code go.mod go.sum
+
+      - name: Run tests
+        working-directory: oracleobservabilityexporter
+        run: go test ./...
+
+      - name: Run vet
+        working-directory: oracleobservabilityexporter
+        run: go vet ./...
+
+      - name: Install OpenTelemetry Collector Builder
+        run: go install go.opentelemetry.io/collector/cmd/builder@${COLLECTOR_VERSION}
+
+      - name: Write temporary release builder manifest
+        shell: bash
+        run: |
+          cat > "${RUNNER_TEMP}/builder-config.yaml" <<EOF
+          dist:
+            module: ${MODULE_PATH}/release/otelcol
+            name: otelcol-oracleobservability-release-check
+            description: Release validation collector with Oracle Observability exporter
+            output_path: ${RUNNER_TEMP}/otelcol-oracleobservability-release-check
+            otelcol_version: ${COLLECTOR_VERSION_NO_V}
+
+          exporters:
+            - gomod: go.opentelemetry.io/collector/exporter/debugexporter ${COLLECTOR_VERSION}
+            - gomod: ${MODULE_PATH} ${EXPORTER_VERSION}
+
+          receivers:
+            - gomod: go.opentelemetry.io/collector/receiver/otlpreceiver ${COLLECTOR_VERSION}
+
+          processors:
+            - gomod: go.opentelemetry.io/collector/processor/batchprocessor ${COLLECTOR_VERSION}
+            - gomod: go.opentelemetry.io/collector/processor/memorylimiterprocessor ${COLLECTOR_VERSION}
+
+          extensions:
+            - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/storage/filestorage ${COLLECTOR_VERSION}
+
+          providers:
+            - gomod: go.opentelemetry.io/collector/confmap/provider/envprovider v1.59.0
+            - gomod: go.opentelemetry.io/collector/confmap/provider/fileprovider v1.59.0
+            - gomod: go.opentelemetry.io/collector/confmap/provider/yamlprovider v1.59.0
+
+          replaces:
+            - ${MODULE_PATH} => ${GITHUB_WORKSPACE}/oracleobservabilityexporter
+          EOF
+
+      - name: Build custom collector release smoke binary
+        run: |
+          "$(go env GOPATH)/bin/builder" --config "${RUNNER_TEMP}/builder-config.yaml"
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          body: |
+            Compatibility: `${{ github.ref_name }}` is aligned with OpenTelemetry Collector/Contrib `${{ steps.release-line.outputs.collector_version }}`.
