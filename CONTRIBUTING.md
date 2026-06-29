@@ -72,12 +72,74 @@ This compiles a collector binary using your local code.
 
 ### Run a smoke test pipeline
 
-- Start the Collector with the `oracleobservability` exporter configured.
-- Send logs via OTLP, for example using `otel-cli`, an SDK app, or another Collector.
-- Verify that:
-  - the Collector starts successfully
-  - logs are exported to OCI Log Analytics
-  - retry and queue behavior is visible under transient failures
+The easiest local smoke test is to read from a local test log file with the
+`filelogreceiver`.
+
+Make sure your OCB manifest includes `filelogreceiver`, `batchprocessor`,
+`filestorage`, and this exporter:
+
+```yaml
+receivers:
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/filelogreceiver v0.153.0
+
+processors:
+  - gomod: go.opentelemetry.io/collector/processor/batchprocessor v0.153.0
+
+extensions:
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/storage/filestorage v0.153.0
+
+exporters:
+  - gomod: github.com/oracle-samples/otel-collector-exporter-oracleobservability/oracleobservabilityexporter v0.153.0
+```
+
+Use a Collector configuration similar to this:
+
+```yaml
+receivers:
+  filelog:
+    include:
+      - /tmp/oracleobservability-smoke.log
+    start_at: beginning
+
+processors:
+  batch:
+    timeout: 30s
+    send_batch_size: 1024
+
+exporters:
+  oracleobservability:
+    auth_type: config_file
+    namespace: "<oci-loganalytics-namespace>"
+    log_group_id: "ocid1.loganalyticsloggroup.oc1..<unique_id>"
+    oci_config_file_path: "/path/to/oci/config"
+    config_profile: "DEFAULT"
+
+extensions:
+  file_storage:
+    directory: "<path_to_storage>"
+    create_directory: true
+
+service:
+  extensions: [file_storage]
+  pipelines:
+    logs:
+      receivers: [filelog]
+      processors: [batch]
+      exporters: [oracleobservability]
+```
+
+Start the Collector, then append a test line:
+
+```bash
+echo "oracleobservability smoke test $(date -u +%Y-%m-%dT%H:%M:%SZ)" >> /tmp/oracleobservability-smoke.log
+```
+
+Verify that:
+
+- the Collector starts successfully
+- the file log is read by the Collector
+- logs are exported to OCI Log Analytics
+- retry and queue behavior is visible under transient failures
 
 ### Run local quality gates
 
