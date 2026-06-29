@@ -9,6 +9,17 @@ this exporter.
 - Stability: `stable`
 - Go module path: `github.com/oracle-samples/otel-collector-exporter-oracleobservability/oracleobservabilityexporter`
 
+## Prerequisites
+
+To use this exporter, you need:
+
+- Go version compatible with the OpenTelemetry Collector version you are building.
+- OpenTelemetry Collector Builder (`ocb`) for your target Collector version.
+- Access to OCI Log Analytics.
+- An OCI Log Analytics namespace.
+- An OCI Log Analytics log group OCID.
+- OCI credentials for either config file authentication or instance principal authentication.
+
 ## Version Compatibility
 
 Use the table below to choose the Oracle Observability Exporter version for the
@@ -33,6 +44,12 @@ use only the module version, for example `v0.153.0`.
    - `auth_type`
    - persistent queue storage using `file_storage`
 4. Run the custom Collector with the configuration file shown in [Example Collector Config](#example-collector-config).
+
+## Installation
+
+Install this exporter by including its Go module in an OpenTelemetry Collector
+Builder manifest. This repository publishes the exporter component source code;
+it does not publish a pre-built Collector binary.
 
 ## What This Exporter Does
 
@@ -327,6 +344,25 @@ builder --config builder-config.yaml
 ./_build/otelcol-custom --config /path/to/collector-config.yaml
 ```
 
+## Testing
+
+Run the exporter unit tests from the repository root:
+
+```bash
+go -C oracleobservabilityexporter test ./...
+```
+
+Run additional local validation before publishing changes:
+
+```bash
+go -C oracleobservabilityexporter vet ./...
+go -C oracleobservabilityexporter test -race ./...
+```
+
+To test the exporter in a custom Collector, build a Collector binary with the
+OCB manifest shown above and run it with a Collector configuration that uses the
+`oracleobservability` exporter.
+
 ## OCI IAM Policies
 
 The exporter calls the OCI Log Analytics `UploadOtlpLogs` API. Grant permissions to the principal used by the selected authentication mode, scoped to the compartment that contains the target Log Analytics log group.
@@ -415,3 +451,23 @@ Notes:
 - Start with queue enabled and monitor backpressure.
 - Use `instance_principal` when running collector inside OCI compute/container environments.
 - Monitor Collector logs and OCI Log Analytics ingestion status during rollout.
+
+## License
+
+This project is dual-licensed under the Universal Permissive License 1.0 or the
+Apache License 2.0. See [LICENSE.txt](./LICENSE.txt) for details, including
+warranty and limitation of liability terms.
+
+## Documentation
+
+- [OCI Log Analytics](https://docs.oracle.com/en-us/iaas/log-analytics/home.htm)
+- [Upload OpenTelemetry logs to OCI Log Analytics](https://docs.oracle.com/en-us/iaas/log-analytics/doc/upload-opentelemetry-logs.html)
+- [OpenTelemetry Collector Builder](https://opentelemetry.io/docs/collector/extend/ocb/)
+
+## How to Contribute
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for contribution guidelines,
+including Oracle Contributor Agreement requirements and local validation steps.
+
+For security vulnerabilities, do not open a GitHub issue. Follow the reporting
+instructions in [SECURITY.md](./SECURITY.md).

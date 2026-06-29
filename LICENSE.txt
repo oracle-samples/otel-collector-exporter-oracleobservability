@@ -9,9 +9,9 @@ You may select the license that best meets your needs.
 
 ----
 
-Universal Permissive License (UPL), Version 1.0
-
 Copyright (c) 2026 Oracle and/or its affiliates.  All rights reserved.
+
+Universal Permissive License (UPL), Version 1.0
 
 Subject to the condition set forth below, permission is hereby granted to any
 person obtaining a copy of this software, associated documentation and/or data

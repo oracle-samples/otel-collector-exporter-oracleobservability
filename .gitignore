@@ -4,11 +4,14 @@ coverage.out
 coverage.html
 *.test
 *.prof
+.tmp/
 
 # Local OCB binaries and generated custom collectors.
 /ocb/
 /builder-config/
 /otelcol/
+/local-build/
+/test-remote-build/
 
 # Local collector configs and Go workspaces.
 /config.yaml
@@ -16,6 +19,8 @@ coverage.html
 # Local notes and helper scripts.
 /LOCAL_COMMANDS.md
 /build-otelcol-artifacts.sh
+/WORKLOAD_IDENTITY_TEST.md
+/otel-collector-wi-test.yaml
 
 # OS and editor files.
 .DS_Store
