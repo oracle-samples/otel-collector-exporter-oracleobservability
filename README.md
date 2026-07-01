@@ -1,3 +1,5 @@
+ORACLE AND ITS AFFILIATES DO NOT PROVIDE ANY WARRANTY WHATSOEVER, EXPRESS OR IMPLIED, FOR ANY SOFTWARE, MATERIAL OR CONTENT OF ANY KIND CONTAINED OR PRODUCED WITHIN THIS REPOSITORY, AND IN PARTICULAR SPECIFICALLY DISCLAIM ANY AND ALL IMPLIED WARRANTIES OF TITLE, NON-INFRINGEMENT, MERCHANTABILITY, AND FITNESS FOR A PARTICULAR PURPOSE. FURTHERMORE, ORACLE AND ITS AFFILIATES DO NOT REPRESENT THAT ANY CUSTOMARY SECURITY REVIEW HAS BEEN PERFORMED WITH RESPECT TO ANY SOFTWARE, MATERIAL OR CONTENT CONTAINED OR PRODUCED WITHIN THIS REPOSITORY. IN ADDITION, AND WITHOUT LIMITING THE FOREGOING, THIRD PARTIES MAY HAVE POSTED SOFTWARE, MATERIAL OR CONTENT TO THIS REPOSITORY WITHOUT ANY REVIEW. USE AT YOUR OWN RISK.
+
 # Oracle Observability Exporter
 
 The `oracleobservability` exporter sends OpenTelemetry **logs** from an OpenTelemetry Collector to [OCI Log Analytics](https://docs.oracle.com/en-us/iaas/log-analytics/home.htm).
@@ -452,22 +454,26 @@ Notes:
 - Use `instance_principal` when running collector inside OCI compute/container environments.
 - Monitor Collector logs and OCI Log Analytics ingestion status during rollout.
 
-## License
-
-This project is dual-licensed under the Universal Permissive License 1.0 or the
-Apache License 2.0. See [LICENSE.txt](./LICENSE.txt) for details, including
-warranty and limitation of liability terms.
-
 ## Documentation
 
 - [OCI Log Analytics](https://docs.oracle.com/en-us/iaas/log-analytics/home.htm)
 - [Upload OpenTelemetry logs to OCI Log Analytics](https://docs.oracle.com/en-us/iaas/log-analytics/doc/upload-opentelemetry-logs.html)
 - [OpenTelemetry Collector Builder](https://opentelemetry.io/docs/collector/extend/ocb/)
 
-## How to Contribute
+## Contributing
 
-See [CONTRIBUTING.md](./CONTRIBUTING.md) for contribution guidelines,
-including Oracle Contributor Agreement requirements and local validation steps.
+This project welcomes contributions from the community. Before submitting a pull
+request, please [review our contribution guide](./CONTRIBUTING.md).
 
-For security vulnerabilities, do not open a GitHub issue. Follow the reporting
-instructions in [SECURITY.md](./SECURITY.md).
+## Security
+
+Please consult the [security guide](./SECURITY.md) for our responsible security
+vulnerability disclosure process.
+
+## License
+
+Copyright (c) 2026 Oracle and/or its affiliates.
+
+This project is dual-licensed under the Universal Permissive License 1.0 or the
+Apache License 2.0. See [LICENSE.txt](./LICENSE.txt) for details, including
+warranty and limitation of liability terms.
