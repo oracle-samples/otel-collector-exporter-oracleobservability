@@ -16,12 +16,12 @@ jobs:
       MODULE_PATH: github.com/oracle-samples/otel-collector-exporter-oracleobservability/oracleobservabilityexporter
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version-file: oracleobservabilityexporter/go.mod
           cache: true
@@ -120,7 +120,7 @@ jobs:
           "$(go env GOPATH)/bin/builder" --config "${RUNNER_TEMP}/builder-config.yaml"
 
       - name: Create GitHub release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           generate_release_notes: true
           body: |
