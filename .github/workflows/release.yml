@@ -16,12 +16,12 @@ jobs:
       MODULE_PATH: github.com/oracle-samples/otel-collector-exporter-oracleobservability/oracleobservabilityexporter
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version-file: oracleobservabilityexporter/go.mod
           cache: true
@@ -119,9 +119,21 @@ jobs:
         run: |
           "$(go env GOPATH)/bin/builder" --config "${RUNNER_TEMP}/builder-config.yaml"
 
+      - name: Check custom collector release smoke binary
+        shell: bash
+        run: |
+          collector="${RUNNER_TEMP}/otelcol-oracleobservability-release-check/otelcol-oracleobservability-release-check"
+          "$collector" components > "${RUNNER_TEMP}/components.txt"
+          grep -q "oracleobservability" "${RUNNER_TEMP}/components.txt"
+
       - name: Create GitHub release
-        uses: softprops/action-gh-release@v2
-        with:
-          generate_release_notes: true
-          body: |
-            Compatibility: `${{ github.ref_name }}` is aligned with OpenTelemetry Collector/Contrib `${{ steps.release-line.outputs.collector_version }}`.
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${GITHUB_REF_NAME}" \
+            --repo "${GITHUB_REPOSITORY}" \
+            --verify-tag \
+            --title "Oracle Observability Exporter ${EXPORTER_VERSION}" \
+            --generate-notes \
+            --notes "Compatibility: ${GITHUB_REF_NAME} is aligned with OpenTelemetry Collector/Contrib ${COLLECTOR_VERSION}."

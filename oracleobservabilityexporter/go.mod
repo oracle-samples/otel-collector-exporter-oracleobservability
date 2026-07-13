@@ -1,6 +1,6 @@
 module github.com/oracle-samples/otel-collector-exporter-oracleobservability/oracleobservabilityexporter
 
-go 1.25.0
+go 1.25.12
 
 require (
 	github.com/oracle/oci-go-sdk/v65 v65.117.0

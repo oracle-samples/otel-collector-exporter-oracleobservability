@@ -23,10 +23,10 @@ jobs:
       MODULE_PATH: github.com/oracle-samples/otel-collector-exporter-oracleobservability/oracleobservabilityexporter
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version-file: oracleobservabilityexporter/go.mod
           cache: true
@@ -78,10 +78,5 @@ jobs:
         shell: bash
         run: |
           collector="${RUNNER_TEMP}/otelcol-oracleobservability-ci/otelcol-oracleobservability-ci"
-          "$collector" --version
-          if "$collector" components > "${RUNNER_TEMP}/components.txt" 2> "${RUNNER_TEMP}/components.err"; then
-            grep -q "oracleobservability" "${RUNNER_TEMP}/components.txt"
-          else
-            echo "components command is unavailable; --version smoke check passed"
-            cat "${RUNNER_TEMP}/components.err"
-          fi
+          "$collector" components > "${RUNNER_TEMP}/components.txt"
+          grep -q "oracleobservability" "${RUNNER_TEMP}/components.txt"
