@@ -23,10 +23,10 @@ jobs:
       MODULE_PATH: github.com/oracle-samples/otel-collector-exporter-oracleobservability/oracleobservabilityexporter
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version-file: oracleobservabilityexporter/go.mod
           cache: true
