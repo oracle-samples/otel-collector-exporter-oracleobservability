@@ -3,7 +3,7 @@ module github.com/oracle-samples/otel-collector-exporter-oracleobservability/ora
 go 1.25.12
 
 require (
-	github.com/oracle/oci-go-sdk/v65 v65.117.0
+	github.com/oracle/oci-go-sdk/v65 v65.120.0
 	github.com/stretchr/testify v1.11.1
 	go.opentelemetry.io/collector/component v1.59.0
 	go.opentelemetry.io/collector/component/componenttest v0.153.0
