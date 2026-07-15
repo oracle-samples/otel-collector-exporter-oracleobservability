@@ -107,15 +107,33 @@ jobs:
             - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/storage/filestorage ${COLLECTOR_VERSION}
 
           providers:
-            - gomod: go.opentelemetry.io/collector/confmap/provider/envprovider v1.59.0
-            - gomod: go.opentelemetry.io/collector/confmap/provider/fileprovider v1.59.0
-            - gomod: go.opentelemetry.io/collector/confmap/provider/yamlprovider v1.59.0
-
-          replaces:
-            - ${MODULE_PATH} => ${GITHUB_WORKSPACE}/oracleobservabilityexporter
+            - gomod: go.opentelemetry.io/collector/confmap/provider/envprovider v1.61.0
+            - gomod: go.opentelemetry.io/collector/confmap/provider/fileprovider v1.61.0
+            - gomod: go.opentelemetry.io/collector/confmap/provider/yamlprovider v1.61.0
           EOF
 
-      - name: Build custom collector release smoke binary
+      - name: Verify exporter tag is remotely importable
+        shell: bash
+        env:
+          GOPROXY: direct
+          GONOSUMDB: github.com/oracle-samples/otel-collector-exporter-oracleobservability/oracleobservabilityexporter
+          GOMODCACHE: ${{ runner.temp }}/remote-module-cache
+        run: |
+          git ls-remote --exit-code --tags \
+            "https://github.com/${GITHUB_REPOSITORY}.git" \
+            "refs/tags/${GITHUB_REF_NAME}"
+
+          metadata="$(go mod download -json "${MODULE_PATH}@${EXPORTER_VERSION}")"
+          echo "$metadata" | jq -e \
+            --arg module "$MODULE_PATH" \
+            --arg version "$EXPORTER_VERSION" \
+            '.Path == $module and .Version == $version and (.Error == null)'
+
+      - name: Build custom collector from remote exporter
+        env:
+          GOPROXY: direct
+          GONOSUMDB: github.com/oracle-samples/otel-collector-exporter-oracleobservability/oracleobservabilityexporter
+          GOMODCACHE: ${{ runner.temp }}/remote-module-cache
         run: |
           "$(go env GOPATH)/bin/builder" --config "${RUNNER_TEMP}/builder-config.yaml"
 
@@ -125,6 +143,7 @@ jobs:
           collector="${RUNNER_TEMP}/otelcol-oracleobservability-release-check/otelcol-oracleobservability-release-check"
           "$collector" components > "${RUNNER_TEMP}/components.txt"
           grep -q "oracleobservability" "${RUNNER_TEMP}/components.txt"
+          grep -q "${MODULE_PATH} ${EXPORTER_VERSION}" "${RUNNER_TEMP}/components.txt"
 
       - name: Create GitHub release
         shell: bash

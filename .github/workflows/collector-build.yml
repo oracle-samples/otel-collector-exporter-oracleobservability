@@ -19,7 +19,7 @@ jobs:
     name: Build custom collector with oracleobservabilityexporter
     runs-on: ubuntu-24.04
     env:
-      COLLECTOR_VERSION: v0.153.0
+      COLLECTOR_VERSION: v0.155.0
       MODULE_PATH: github.com/oracle-samples/otel-collector-exporter-oracleobservability/oracleobservabilityexporter
     steps:
       - name: Check out repository
@@ -44,7 +44,7 @@ jobs:
             name: otelcol-oracleobservability-ci
             description: CI collector with Oracle Observability exporter
             output_path: ${RUNNER_TEMP}/otelcol-oracleobservability-ci
-            otelcol_version: 0.153.0
+            otelcol_version: 0.155.0
 
           exporters:
             - gomod: go.opentelemetry.io/collector/exporter/debugexporter ${COLLECTOR_VERSION}
@@ -61,9 +61,9 @@ jobs:
             - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/storage/filestorage ${COLLECTOR_VERSION}
 
           providers:
-            - gomod: go.opentelemetry.io/collector/confmap/provider/envprovider v1.59.0
-            - gomod: go.opentelemetry.io/collector/confmap/provider/fileprovider v1.59.0
-            - gomod: go.opentelemetry.io/collector/confmap/provider/yamlprovider v1.59.0
+            - gomod: go.opentelemetry.io/collector/confmap/provider/envprovider v1.61.0
+            - gomod: go.opentelemetry.io/collector/confmap/provider/fileprovider v1.61.0
+            - gomod: go.opentelemetry.io/collector/confmap/provider/yamlprovider v1.61.0
 
           replaces:
             - ${MODULE_PATH} => ${GITHUB_WORKSPACE}/oracleobservabilityexporter

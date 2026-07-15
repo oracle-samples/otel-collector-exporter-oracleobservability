@@ -175,6 +175,9 @@ func initializeOciLogAnalyticsClient(authType AuthenticationType, ociConfigurati
 	case InstancePrincipal:
 		configProvider, err = auth.InstancePrincipalConfigurationProvider()
 
+	case WorkloadIdentity:
+		configProvider, err = auth.OkeWorkloadIdentityConfigurationProvider()
+
 	case ConfigFile:
 		configProvider, err = getConfigFileProvider(ociConfiguration, configFilePath, configProfile, privateKeyPassphrase)
 
@@ -183,6 +186,16 @@ func initializeOciLogAnalyticsClient(authType AuthenticationType, ociConfigurati
 	}
 
 	if err != nil {
+		if authType == WorkloadIdentity {
+			return loganalytics.LogAnalyticsClient{}, fmt.Errorf(
+				"failed to initialize OKE Workload Identity authentication for auth_type %q: %w. "+
+					"Ensure the Collector pod sets OCI_RESOURCE_PRINCIPAL_VERSION=2.2 and "+
+					"OCI_RESOURCE_PRINCIPAL_REGION=<oci-region>, uses serviceAccountName, and has "+
+					"automountServiceAccountToken=true",
+				authType,
+				err,
+			)
+		}
 		return loganalytics.LogAnalyticsClient{}, err
 	}
 

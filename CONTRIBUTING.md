@@ -58,7 +58,7 @@ local checkout:
 
 ```yaml
 exporters:
-  - gomod: github.com/oracle-samples/otel-collector-exporter-oracleobservability/oracleobservabilityexporter v0.153.0
+  - gomod: github.com/oracle-samples/otel-collector-exporter-oracleobservability/oracleobservabilityexporter v0.155.0
     path: /absolute/path/to/otel-collector-exporter-oracleobservability/oracleobservabilityexporter
 ```
 
@@ -80,16 +80,16 @@ Make sure your OCB manifest includes `filelogreceiver`, `batchprocessor`,
 
 ```yaml
 receivers:
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/filelogreceiver v0.153.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/filelogreceiver v0.155.0
 
 processors:
-  - gomod: go.opentelemetry.io/collector/processor/batchprocessor v0.153.0
+  - gomod: go.opentelemetry.io/collector/processor/batchprocessor v0.155.0
 
 extensions:
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/storage/filestorage v0.153.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/storage/filestorage v0.155.0
 
 exporters:
-  - gomod: github.com/oracle-samples/otel-collector-exporter-oracleobservability/oracleobservabilityexporter v0.153.0
+  - gomod: github.com/oracle-samples/otel-collector-exporter-oracleobservability/oracleobservabilityexporter v0.155.0
 ```
 
 Use a Collector configuration similar to this:
