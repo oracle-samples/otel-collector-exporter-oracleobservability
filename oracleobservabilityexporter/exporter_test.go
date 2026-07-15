@@ -9,11 +9,13 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"os"
 	"strings"
 	"testing"
 
 	"github.com/oracle-samples/otel-collector-exporter-oracleobservability/oracleobservabilityexporter/internal/metadata"
 	oci_common "github.com/oracle/oci-go-sdk/v65/common"
+	"github.com/oracle/oci-go-sdk/v65/loganalytics"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -345,6 +347,61 @@ func TestInitializeOciLogAnalyticsClient_InvalidAuthType(t *testing.T) {
 	require.Error(t, err)
 	require.Contains(t, err.Error(), `unsupported auth_type "invalid"`)
 	require.Empty(t, client)
+}
+
+func TestInitializeOciLogAnalyticsClient_WorkloadIdentityMissingEnvironmentReturnsActionableError(t *testing.T) {
+	previousVersion, hadVersion := os.LookupEnv("OCI_RESOURCE_PRINCIPAL_VERSION")
+	require.NoError(t, os.Unsetenv("OCI_RESOURCE_PRINCIPAL_VERSION"))
+	t.Cleanup(func() {
+		if hadVersion {
+			require.NoError(t, os.Setenv("OCI_RESOURCE_PRINCIPAL_VERSION", previousVersion))
+			return
+		}
+		require.NoError(t, os.Unsetenv("OCI_RESOURCE_PRINCIPAL_VERSION"))
+	})
+
+	client, err := initializeOciLogAnalyticsClient(WorkloadIdentity, OciConfig{}, "", "", "")
+
+	require.Error(t, err)
+	require.Empty(t, client)
+	require.Contains(t, err.Error(), `failed to initialize OKE Workload Identity authentication for auth_type "workload_identity"`)
+	require.Contains(t, err.Error(), "OCI_RESOURCE_PRINCIPAL_VERSION=2.2")
+	require.Contains(t, err.Error(), "OCI_RESOURCE_PRINCIPAL_REGION=<oci-region>")
+	require.Contains(t, err.Error(), "serviceAccountName")
+	require.Contains(t, err.Error(), "automountServiceAccountToken=true")
+	require.Contains(t, err.Error(), "OCI_RESOURCE_PRINCIPAL_VERSION")
+}
+
+func TestNewLogsExporter_WorkloadIdentityPassesAuthTypeToClientFactory(t *testing.T) {
+	previousFactory := newLogAnalyticsClientFactory
+	t.Cleanup(func() {
+		newLogAnalyticsClientFactory = previousFactory
+	})
+
+	called := false
+	var capturedAuthType AuthenticationType
+	newLogAnalyticsClientFactory = func(authType AuthenticationType, ociConfiguration OciConfig,
+		configFilePath string, configProfile string, privateKeyPassphrase string) (loganalytics.LogAnalyticsClient, error) {
+		called = true
+		capturedAuthType = authType
+		require.Equal(t, OciConfig{}, ociConfiguration)
+		require.Empty(t, configFilePath)
+		require.Empty(t, configProfile)
+		require.Empty(t, privateKeyPassphrase)
+		return loganalytics.LogAnalyticsClient{}, nil
+	}
+
+	cfg := &Config{
+		AuthType:      WorkloadIdentity,
+		NamespaceName: "test-namespace",
+		LogGroupID:    "test-log-group-id",
+	}
+	logExporter, err := newLogsExporter(context.Background(), exportertest.NewNopSettings(metadata.Type), cfg)
+
+	require.NoError(t, err)
+	require.NotNil(t, logExporter)
+	require.True(t, called)
+	require.Equal(t, WorkloadIdentity, capturedAuthType)
 }
 
 func TestStart(t *testing.T) {
