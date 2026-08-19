@@ -150,9 +150,32 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          notes_file="${RUNNER_TEMP}/release-notes.md"
+          cat > "$notes_file" <<EOF
+          # Oracle Observability Exporter ${EXPORTER_VERSION}
+
+          This release publishes ${EXPORTER_VERSION} of the Oracle Observability OpenTelemetry Collector exporter.
+
+          ## Compatibility
+
+          - OpenTelemetry Collector/Contrib: \`${COLLECTOR_VERSION}\`
+          - Exporter module version: \`${EXPORTER_VERSION}\`
+          - Supported signal: logs
+
+          ## OCB Usage
+
+          ~~~yaml
+          exporters:
+            - gomod: ${MODULE_PATH} ${EXPORTER_VERSION}
+          ~~~
+
+          ## Notes
+
+          This release publishes the exporter Go module only. It does not include pre-built Collector binaries.
+          EOF
+
           gh release create "${GITHUB_REF_NAME}" \
             --repo "${GITHUB_REPOSITORY}" \
             --verify-tag \
-            --title "Oracle Observability Exporter ${EXPORTER_VERSION}" \
-            --generate-notes \
-            --notes "Compatibility: ${GITHUB_REF_NAME} is aligned with OpenTelemetry Collector/Contrib ${COLLECTOR_VERSION}."
+            --title "${EXPORTER_VERSION}" \
+            --notes-file "$notes_file"
