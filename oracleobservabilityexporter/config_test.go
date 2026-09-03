@@ -127,11 +127,20 @@ func TestConfigValidate(t *testing.T) {
 				NamespaceName: "test-namespace",
 				LogGroupID:    "test-log-group",
 			},
-			expectedErr: "invalid 'auth_type', supported values are 'config_file', 'instance_principal', and 'workload_identity'",
+			expectedErr: "invalid 'auth_type', supported values are 'config_file', 'instance_principal', 'workload_identity', and 'resource_principal'",
 		},
 		{
 			name:        "Valid config",
 			config:      validConfig,
+			expectedErr: "",
+		},
+		{
+			name: "Valid resource principal config",
+			config: &Config{
+				AuthType:      ResourcePrincipal,
+				NamespaceName: "test-namespace",
+				LogGroupID:    "test-log-group",
+			},
 			expectedErr: "",
 		},
 		{
@@ -154,6 +163,48 @@ func TestConfigValidate(t *testing.T) {
 				},
 			},
 			expectedErr: "'oci_config' field is only applicable when 'auth_type' is set to 'config_file'",
+		},
+		{
+			name: "Resource principal with OCI config",
+			config: &Config{
+				AuthType:      ResourcePrincipal,
+				NamespaceName: "test-namespace",
+				LogGroupID:    "test-log-group",
+				OciConfiguration: OciConfig{
+					FingerPrint: "test",
+				},
+			},
+			expectedErr: "'oci_config' field is only applicable when 'auth_type' is set to 'config_file'",
+		},
+		{
+			name: "Resource principal with OCI config file path",
+			config: &Config{
+				AuthType:       ResourcePrincipal,
+				NamespaceName:  "test-namespace",
+				LogGroupID:     "test-log-group",
+				ConfigFilePath: configopaque.String("/path/to/oci/config"),
+			},
+			expectedErr: "'oci_config_file_path' field is only applicable when 'auth_type' is set to 'config_file'",
+		},
+		{
+			name: "Resource principal with OCI config profile",
+			config: &Config{
+				AuthType:      ResourcePrincipal,
+				NamespaceName: "test-namespace",
+				LogGroupID:    "test-log-group",
+				ConfigProfile: configopaque.String("DEFAULT"),
+			},
+			expectedErr: "'config_profile' field is only applicable when 'auth_type' is set to 'config_file'",
+		},
+		{
+			name: "Resource principal with private key passphrase",
+			config: &Config{
+				AuthType:             ResourcePrincipal,
+				NamespaceName:        "test-namespace",
+				LogGroupID:           "test-log-group",
+				PrivateKeyPassphrase: configopaque.String("test-passphrase"),
+			},
+			expectedErr: "'private_key_passphrase' field is only applicable when 'auth_type' is set to 'config_file'",
 		},
 		{
 			name: "Workload identity with OCI config",

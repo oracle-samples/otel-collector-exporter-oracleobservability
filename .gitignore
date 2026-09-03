@@ -20,6 +20,7 @@ coverage.html
 # Local notes and helper scripts.
 /LOCAL_COMMANDS.md
 /build-otelcol-artifacts.sh
+/RESOURCE_PRINCIPAL_TEST_PLAN.md
 /WORKLOAD_IDENTITY_TEST.md
 
 # OS and editor files.

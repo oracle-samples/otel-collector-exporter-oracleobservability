@@ -175,6 +175,9 @@ func initializeOciLogAnalyticsClient(authType AuthenticationType, ociConfigurati
 	case InstancePrincipal:
 		configProvider, err = auth.InstancePrincipalConfigurationProvider()
 
+	case ResourcePrincipal:
+		configProvider, err = auth.ResourcePrincipalConfigurationProvider()
+
 	case WorkloadIdentity:
 		configProvider, err = auth.OkeWorkloadIdentityConfigurationProvider()
 
@@ -186,6 +189,9 @@ func initializeOciLogAnalyticsClient(authType AuthenticationType, ociConfigurati
 	}
 
 	if err != nil {
+		if authType == ResourcePrincipal {
+			return loganalytics.LogAnalyticsClient{}, fmt.Errorf("failed to initialize resource principal provider: %w", err)
+		}
 		if authType == WorkloadIdentity {
 			return loganalytics.LogAnalyticsClient{}, fmt.Errorf(
 				"failed to initialize OKE Workload Identity authentication for auth_type %q: %w. "+

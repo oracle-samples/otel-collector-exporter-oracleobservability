@@ -349,6 +349,17 @@ func TestInitializeOciLogAnalyticsClient_InvalidAuthType(t *testing.T) {
 	require.Empty(t, client)
 }
 
+func TestInitializeOciLogAnalyticsClient_ResourcePrincipalMissingEnvironment(t *testing.T) {
+	clearResourcePrincipalEnv(t)
+
+	client, err := initializeOciLogAnalyticsClient(ResourcePrincipal, OciConfig{}, "", "", "")
+
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "failed to initialize resource principal provider")
+	require.Contains(t, err.Error(), "OCI_RESOURCE_PRINCIPAL_VERSION")
+	require.Empty(t, client)
+}
+
 func TestInitializeOciLogAnalyticsClient_WorkloadIdentityMissingEnvironmentReturnsActionableError(t *testing.T) {
 	previousVersion, hadVersion := os.LookupEnv("OCI_RESOURCE_PRINCIPAL_VERSION")
 	require.NoError(t, os.Unsetenv("OCI_RESOURCE_PRINCIPAL_VERSION"))
@@ -370,6 +381,32 @@ func TestInitializeOciLogAnalyticsClient_WorkloadIdentityMissingEnvironmentRetur
 	require.Contains(t, err.Error(), "serviceAccountName")
 	require.Contains(t, err.Error(), "automountServiceAccountToken=true")
 	require.Contains(t, err.Error(), "OCI_RESOURCE_PRINCIPAL_VERSION")
+}
+
+func clearResourcePrincipalEnv(t *testing.T) {
+	t.Helper()
+
+	envVars := []string{
+		"OCI_RESOURCE_PRINCIPAL_VERSION",
+		"OCI_RESOURCE_PRINCIPAL_RPST",
+		"OCI_RESOURCE_PRINCIPAL_PRIVATE_PEM",
+		"OCI_RESOURCE_PRINCIPAL_PRIVATE_PEM_PASSPHRASE",
+		"OCI_RESOURCE_PRINCIPAL_REGION",
+		"OCI_RESOURCE_PRINCIPAL_RPST_ENDPOINT",
+		"OCI_RESOURCE_PRINCIPAL_RPT_ENDPOINT",
+	}
+
+	for _, name := range envVars {
+		previous, ok := os.LookupEnv(name)
+		require.NoError(t, os.Unsetenv(name))
+		t.Cleanup(func() {
+			if ok {
+				require.NoError(t, os.Setenv(name, previous))
+				return
+			}
+			require.NoError(t, os.Unsetenv(name))
+		})
+	}
 }
 
 func TestNewLogsExporter_WorkloadIdentityPassesAuthTypeToClientFactory(t *testing.T) {
