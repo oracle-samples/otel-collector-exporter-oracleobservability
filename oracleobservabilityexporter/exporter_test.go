@@ -10,6 +10,8 @@ import (
 	"errors"
 	"net/http"
 	"os"
+	"os/exec"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -43,6 +45,79 @@ type stubOCIResponse struct {
 
 func (s stubOCIResponse) HTTPResponse() *http.Response {
 	return &http.Response{StatusCode: s.statusCode}
+}
+
+func TestConfigFileProviderSelection(t *testing.T) {
+	t.Parallel()
+	path := filepath.Join(t.TempDir(), "config")
+	require.NoError(t, os.WriteFile(path, []byte("[DEFAULT]\nregion=us-ashburn-1\n[TEST]\nregion=us-phoenix-1\n"), 0600))
+	for _, tc := range []struct {
+		name, profile, region string
+		config                OciConfig
+	}{
+		{name: "default profile", region: "us-ashburn-1"},
+		{name: "explicit profile", profile: "TEST", region: "us-phoenix-1"},
+		{name: "inline takes precedence", profile: "TEST", region: "us-sanjose-1", config: OciConfig{Region: "us-sanjose-1", Tenancy: "test-tenancy"}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			provider, err := getConfigFileProvider(tc.config, path, tc.profile, "")
+			require.NoError(t, err)
+			region, err := provider.Region()
+			require.NoError(t, err)
+			require.Equal(t, tc.region, region)
+		})
+	}
+}
+
+func TestCustomRequestInterceptor(t *testing.T) {
+	t.Parallel()
+	req, err := http.NewRequest(http.MethodPost, "https://example.invalid", nil)
+	require.NoError(t, err)
+	req.Header.Set("Content-Encoding", "identity")
+	req.Header.Set("Content-Type", "application/json")
+	require.NoError(t, customRequestInterceptor(req))
+	require.Equal(t, "gzip", req.Header.Get("Content-Encoding"))
+	require.Equal(t, "application/json", req.Header.Get("Content-Type"))
+}
+
+func TestChunkPlogsSkipsOversizedAttributesAndContinues(t *testing.T) {
+	for _, level := range []string{"resource", "scope", "record"} {
+		t.Run(level, func(t *testing.T) {
+			logs := plog.NewLogs()
+			rl := logs.ResourceLogs().AppendEmpty()
+			sl := rl.ScopeLogs().AppendEmpty()
+			lr := sl.LogRecords().AppendEmpty()
+			lr.Body().SetStr("oversized")
+			large := strings.Repeat("x", MaxContentLengthLogsInBytes+1)
+			switch level {
+			case "resource":
+				rl.Resource().Attributes().PutStr("large", large)
+				rl = logs.ResourceLogs().AppendEmpty()
+				sl = rl.ScopeLogs().AppendEmpty()
+			case "scope":
+				sl.Scope().Attributes().PutStr("large", large)
+				sl = rl.ScopeLogs().AppendEmpty()
+			case "record":
+				lr.Attributes().PutStr("large", large)
+			}
+			sl.LogRecords().AppendEmpty().Body().SetStr("survivor")
+			before, err := (&plog.JSONMarshaler{}).MarshalLogs(logs)
+			require.NoError(t, err)
+			worker := &mockWorker{}
+			worker.On("sendData", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
+				decoded, err := (&plog.JSONUnmarshaler{}).UnmarshalLogs(args.Get(1).([]byte))
+				require.NoError(t, err)
+				require.Equal(t, 1, decoded.LogRecordCount())
+				require.Equal(t, "survivor", decoded.ResourceLogs().At(0).ScopeLogs().At(0).LogRecords().At(0).Body().Str())
+			}).Return(nil).Once()
+			exporter := &oracleobservabilityLogsExporter{logger: zap.NewNop(), oracleobservabilityWorker: worker}
+			require.NoError(t, exporter.chunkPlogs(context.Background(), logs, plog.JSONMarshaler{}))
+			worker.AssertExpectations(t)
+			after, err := (&plog.JSONMarshaler{}).MarshalLogs(logs)
+			require.NoError(t, err)
+			require.Equal(t, before, after, "chunking must not mutate caller-owned logs")
+		})
+	}
 }
 
 func TestNewLogsExporter_Success(t *testing.T) {
@@ -349,6 +424,71 @@ func TestInitializeOciLogAnalyticsClient_InvalidAuthType(t *testing.T) {
 	require.Empty(t, client)
 }
 
+func TestInitializeOciLogAnalyticsClient_ResourcePrincipalMissingEnvironment(t *testing.T) {
+	clearResourcePrincipalEnv(t)
+
+	client, err := initializeOciLogAnalyticsClient(ResourcePrincipal, OciConfig{}, "", "", "")
+
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "failed to initialize resource principal provider")
+	require.Contains(t, err.Error(), "OCI_RESOURCE_PRINCIPAL_VERSION")
+	require.Empty(t, client)
+}
+
+func TestInitializeOciLogAnalyticsClient_ResourcePrincipalRegion(t *testing.T) {
+	for _, tc := range []struct {
+		name, region, want string
+		missing            bool
+	}{
+		{name: "empty", want: "can not create resource principal, environment variable: OCI_RESOURCE_PRINCIPAL_REGION, must not be empty or whitespace"},
+		{name: "spaces", region: "   ", want: "can not create resource principal, environment variable: OCI_RESOURCE_PRINCIPAL_REGION, must not be empty or whitespace"},
+		{name: "mixed_whitespace", region: "\t\r\n ", want: "can not create resource principal, environment variable: OCI_RESOURCE_PRINCIPAL_REGION, must not be empty or whitespace"},
+		{name: "missing", missing: true, want: "OCI_RESOURCE_PRINCIPAL_REGION, not present"},
+		{name: "valid_reaches_key_loading", region: "us-sanjose-1", want: "failed to refresh session key"},
+		{name: "nonexistent", region: "invalid-rp-test-region", want: "must identify a region recognized by the OCI SDK"},
+		{name: "typo", region: "us-sanjsoe-1", want: "must identify a region recognized by the OCI SDK"},
+		{name: "surrounding_whitespace", region: " us-sanjose-1 ", want: "must identify a region recognized by the OCI SDK"},
+		{name: "url", region: "https://example.invalid", want: "must identify a region recognized by the OCI SDK"},
+		{name: "uppercase", region: "US-SANJOSE-1", want: "failed to refresh session key"},
+		{name: "short_code", region: "sjc", want: "failed to refresh session key"},
+		{name: "government_region", region: "us-gov-ashburn-1", want: "failed to refresh session key"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			clearResourcePrincipalEnv(t)
+			t.Setenv("OCI_RESOURCE_PRINCIPAL_VERSION", "2.2")
+			t.Setenv("OCI_RESOURCE_PRINCIPAL_RPST", t.TempDir()+"/rpst")
+			t.Setenv("OCI_RESOURCE_PRINCIPAL_PRIVATE_PEM", t.TempDir()+"/key.pem")
+			if !tc.missing {
+				t.Setenv("OCI_RESOURCE_PRINCIPAL_REGION", tc.region)
+			}
+			client, err := initializeOciLogAnalyticsClient(ResourcePrincipal, OciConfig{}, "", "", "")
+			require.ErrorContains(t, err, tc.want)
+			require.Empty(t, client)
+		})
+	}
+}
+
+func TestInitializeOciLogAnalyticsClient_ResourcePrincipalCustomRegion(t *testing.T) {
+	// The SDK caches region metadata process-wide; use a fresh process to test discovery.
+	if os.Getenv("RP_CUSTOM_REGION_TEST_CHILD") != "1" {
+		t.Setenv("RP_CUSTOM_REGION_TEST_CHILD", "1")
+		t.Setenv("HOME", t.TempDir())
+		t.Setenv("OCI_REGION_METADATA", `{"realmKey":"oc1","realmDomainComponent":"oraclecloud.com","regionKey":"TST","regionIdentifier":"test-custom-region-1"}`)
+		cmd := exec.Command(os.Args[0], "-test.run=^TestInitializeOciLogAnalyticsClient_ResourcePrincipalCustomRegion$")
+		output, err := cmd.CombinedOutput()
+		require.NoError(t, err, "%s", output)
+		return
+	}
+	clearResourcePrincipalEnv(t)
+	t.Setenv("OCI_RESOURCE_PRINCIPAL_VERSION", "2.2")
+	t.Setenv("OCI_RESOURCE_PRINCIPAL_REGION", "test-custom-region-1")
+	t.Setenv("OCI_RESOURCE_PRINCIPAL_RPST", t.TempDir()+"/rpst")
+	t.Setenv("OCI_RESOURCE_PRINCIPAL_PRIVATE_PEM", t.TempDir()+"/key.pem")
+	client, err := initializeOciLogAnalyticsClient(ResourcePrincipal, OciConfig{}, "", "", "")
+	require.ErrorContains(t, err, "failed to refresh session key")
+	require.Empty(t, client)
+}
+
 func TestInitializeOciLogAnalyticsClient_WorkloadIdentityMissingEnvironmentReturnsActionableError(t *testing.T) {
 	previousVersion, hadVersion := os.LookupEnv("OCI_RESOURCE_PRINCIPAL_VERSION")
 	require.NoError(t, os.Unsetenv("OCI_RESOURCE_PRINCIPAL_VERSION"))
@@ -372,36 +512,67 @@ func TestInitializeOciLogAnalyticsClient_WorkloadIdentityMissingEnvironmentRetur
 	require.Contains(t, err.Error(), "OCI_RESOURCE_PRINCIPAL_VERSION")
 }
 
-func TestNewLogsExporter_WorkloadIdentityPassesAuthTypeToClientFactory(t *testing.T) {
-	previousFactory := newLogAnalyticsClientFactory
-	t.Cleanup(func() {
-		newLogAnalyticsClientFactory = previousFactory
-	})
+func clearResourcePrincipalEnv(t *testing.T) {
+	t.Helper()
 
-	called := false
-	var capturedAuthType AuthenticationType
-	newLogAnalyticsClientFactory = func(authType AuthenticationType, ociConfiguration OciConfig,
-		configFilePath string, configProfile string, privateKeyPassphrase string) (loganalytics.LogAnalyticsClient, error) {
-		called = true
-		capturedAuthType = authType
-		require.Equal(t, OciConfig{}, ociConfiguration)
-		require.Empty(t, configFilePath)
-		require.Empty(t, configProfile)
-		require.Empty(t, privateKeyPassphrase)
-		return loganalytics.LogAnalyticsClient{}, nil
+	envVars := []string{
+		"OCI_RESOURCE_PRINCIPAL_VERSION",
+		"OCI_RESOURCE_PRINCIPAL_RPST",
+		"OCI_RESOURCE_PRINCIPAL_PRIVATE_PEM",
+		"OCI_RESOURCE_PRINCIPAL_PRIVATE_PEM_PASSPHRASE",
+		"OCI_RESOURCE_PRINCIPAL_REGION",
+		"OCI_RESOURCE_PRINCIPAL_RPST_ENDPOINT",
+		"OCI_RESOURCE_PRINCIPAL_RPT_ENDPOINT",
 	}
 
-	cfg := &Config{
-		AuthType:      WorkloadIdentity,
-		NamespaceName: "test-namespace",
-		LogGroupID:    "test-log-group-id",
+	for _, name := range envVars {
+		previous, ok := os.LookupEnv(name)
+		require.NoError(t, os.Unsetenv(name))
+		t.Cleanup(func() {
+			if ok {
+				require.NoError(t, os.Setenv(name, previous))
+				return
+			}
+			require.NoError(t, os.Unsetenv(name))
+		})
 	}
-	logExporter, err := newLogsExporter(context.Background(), exportertest.NewNopSettings(metadata.Type), cfg)
+}
 
-	require.NoError(t, err)
-	require.NotNil(t, logExporter)
-	require.True(t, called)
-	require.Equal(t, WorkloadIdentity, capturedAuthType)
+func TestNewLogsExporter_PassesAuthTypeToClientFactory(t *testing.T) {
+	// These cases are sequential because the client factory is package-global.
+	for _, authType := range []AuthenticationType{ConfigFile, InstancePrincipal, WorkloadIdentity, ResourcePrincipal} {
+		t.Run(string(authType), func(t *testing.T) {
+			previousFactory := newLogAnalyticsClientFactory
+			t.Cleanup(func() {
+				newLogAnalyticsClientFactory = previousFactory
+			})
+
+			called := false
+			var capturedAuthType AuthenticationType
+			newLogAnalyticsClientFactory = func(authType AuthenticationType, ociConfiguration OciConfig,
+				configFilePath string, configProfile string, privateKeyPassphrase string) (loganalytics.LogAnalyticsClient, error) {
+				called = true
+				capturedAuthType = authType
+				require.Equal(t, OciConfig{}, ociConfiguration)
+				require.Empty(t, configFilePath)
+				require.Empty(t, configProfile)
+				require.Empty(t, privateKeyPassphrase)
+				return loganalytics.LogAnalyticsClient{}, nil
+			}
+
+			cfg := &Config{
+				AuthType:      authType,
+				NamespaceName: "test-namespace",
+				LogGroupID:    "test-log-group-id",
+			}
+			logExporter, err := newLogsExporter(context.Background(), exportertest.NewNopSettings(metadata.Type), cfg)
+
+			require.NoError(t, err)
+			require.NotNil(t, logExporter)
+			require.True(t, called)
+			require.Equal(t, authType, capturedAuthType)
+		})
+	}
 }
 
 func TestStart(t *testing.T) {

@@ -11,7 +11,9 @@ import (
 	"github.com/oracle-samples/otel-collector-exporter-oracleobservability/oracleobservabilityexporter/internal/metadata"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"go.opentelemetry.io/collector/confmap/xconfmap"
+	"go.opentelemetry.io/collector/component"
+	"go.opentelemetry.io/collector/component/componenttest"
+	"go.opentelemetry.io/collector/confmap"
 	"go.opentelemetry.io/collector/exporter/exportertest"
 )
 
@@ -33,7 +35,7 @@ func TestCreateDefaultConfig(t *testing.T) {
 	oracleobservabilityConfig.LogGroupID = "test-log-group"
 
 	assert.NotNil(t, cfg, "failed to create default config")
-	assert.NoError(t, xconfmap.Validate(cfg))
+	assert.NoError(t, confmap.Validate(cfg))
 }
 
 func TestCreateLogsExporter(t *testing.T) {
@@ -51,6 +53,45 @@ func TestCreateLogsExporter(t *testing.T) {
 	assert.NoError(t, err, "expected no error while creating logs exporter")
 	require.NotNil(t, exporter, "expected a non-nil logs exporter")
 	require.NoError(t, exporter.Shutdown(context.TODO()))
+}
+
+func TestQueueStorageDefaults(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		name    string
+		values  map[string]any
+		storage string
+		enabled bool
+	}{
+		{"omitted", map[string]any{}, "file_storage", true},
+		{"partial queue", map[string]any{"sending_queue": map[string]any{"queue_size": 42}}, "file_storage", true},
+		{"custom storage", map[string]any{"sending_queue": map[string]any{"storage": "file_storage/custom"}}, "file_storage/custom", true},
+		{"disabled", map[string]any{"sending_queue": map[string]any{"enabled": false}}, "", false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			cfg := createDefaultConfig().(*Config)
+			require.NoError(t, confmap.NewFromStringMap(tc.values).Unmarshal(cfg))
+			require.Equal(t, tc.enabled, cfg.QueueConfig.HasValue())
+			if tc.enabled {
+				require.NotNil(t, cfg.QueueConfig.Get().StorageID)
+				assert.Equal(t, tc.storage, cfg.QueueConfig.Get().StorageID.String())
+			}
+		})
+	}
+	first := createDefaultConfig().(*Config)
+	*first.QueueConfig.Get().StorageID = component.NewIDWithName(component.MustNewType("file_storage"), "changed")
+	second := createDefaultConfig().(*Config)
+	assert.Equal(t, "file_storage", second.QueueConfig.Get().StorageID.String())
+}
+
+func TestDefaultQueueRequiresStorageExtension(t *testing.T) {
+	cfg := createDefaultConfig().(*Config)
+	cfg.NamespaceName = "test-namespace"
+	cfg.LogGroupID = "test-log-group"
+	exp, err := createLogsExporter(context.Background(), exportertest.NewNopSettings(metadata.Type), cfg)
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, exp.Shutdown(context.Background())) })
+	require.ErrorContains(t, exp.Start(context.Background(), componenttest.NewNopHost()), "no storage client extension found")
 }
 
 func TestCreateLogsExporterError(t *testing.T) {

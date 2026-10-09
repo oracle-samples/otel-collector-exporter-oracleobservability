@@ -21,6 +21,7 @@ const (
 	ConfigFile        AuthenticationType = "config_file"
 	InstancePrincipal AuthenticationType = "instance_principal"
 	WorkloadIdentity  AuthenticationType = "workload_identity"
+	ResourcePrincipal AuthenticationType = "resource_principal"
 )
 
 type OciConfig struct {
@@ -46,7 +47,8 @@ type Config struct {
 	QueueConfig   configoptional.Optional[exporterhelper.QueueBatchConfig] `mapstructure:"sending_queue"`
 	BackOffConfig configretry.BackOffConfig                                `mapstructure:"retry_on_failure"`
 
-	// The authentication type to use. Supported values are: config_file, instance_principal, or workload_identity. Default is config_file.
+	// The authentication type to use. Supported values are: config_file, instance_principal,
+	// workload_identity, or resource_principal. Default is config_file.
 	AuthType AuthenticationType `mapstructure:"auth_type"`
 
 	// The OCI tenancy namespace to which the collected log data will be uploaded.
@@ -91,8 +93,8 @@ func (cfg *Config) Validate() error {
 	if strings.TrimSpace(cfg.LogGroupID) == "" {
 		return errors.New("'log_group_id' is a required field")
 	}
-	if cfg.AuthType != ConfigFile && cfg.AuthType != InstancePrincipal && cfg.AuthType != WorkloadIdentity {
-		return errors.New("invalid 'auth_type', supported values are 'config_file', 'instance_principal', and 'workload_identity'")
+	if cfg.AuthType != ConfigFile && cfg.AuthType != InstancePrincipal && cfg.AuthType != ResourcePrincipal && cfg.AuthType != WorkloadIdentity {
+		return errors.New("invalid 'auth_type', supported values are 'config_file', 'instance_principal', 'workload_identity', and 'resource_principal'")
 	}
 
 	isOciConfigUsed := isOciConfigUsed(cfg.OciConfiguration)
