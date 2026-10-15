@@ -26,6 +26,7 @@ func NewFactory() exporter.Factory {
 }
 
 func createDefaultConfig() component.Config {
+	storageID := component.MustNewID("file_storage")
 	cfg := &Config{
 		BackOffConfig: configretry.BackOffConfig{
 			Enabled:             true,
@@ -36,6 +37,7 @@ func createDefaultConfig() component.Config {
 			MaxElapsedTime:      0,
 		},
 		QueueConfig: configoptional.Some(exporterhelper.QueueBatchConfig{
+			StorageID:       &storageID,
 			NumConsumers:    10,
 			QueueSize:       1000,
 			BlockOnOverflow: true,

@@ -15,14 +15,27 @@ import (
 	"go.opentelemetry.io/collector/config/configopaque"
 	"go.opentelemetry.io/collector/config/configoptional"
 	"go.opentelemetry.io/collector/config/configretry"
+	"go.opentelemetry.io/collector/confmap"
 	"go.opentelemetry.io/collector/confmap/confmaptest"
-	"go.opentelemetry.io/collector/confmap/xconfmap"
 	"go.opentelemetry.io/collector/exporter/exporterhelper"
 )
 
 var (
 	oracleobservability = component.MustNewType("oracleobservability")
 )
+
+func TestLoadInMemoryConfig(t *testing.T) {
+	cm, err := confmaptest.LoadConf(filepath.Join("testdata", "config-in-memory.yaml"))
+	require.NoError(t, err)
+	cfg := createDefaultConfig().(*Config)
+	require.NoError(t, cm.Unmarshal(cfg))
+	require.NoError(t, confmap.Validate(cfg))
+	require.True(t, cfg.QueueConfig.HasValue())
+	require.Nil(t, cfg.QueueConfig.Get().StorageID)
+	assert.EqualValues(t, 42, cfg.QueueConfig.Get().QueueSize)
+	assert.Equal(t, 2, cfg.QueueConfig.Get().NumConsumers)
+	assert.True(t, cfg.BackOffConfig.Enabled)
+}
 
 func TestLoadConfig(t *testing.T) {
 	t.Parallel()
@@ -42,11 +55,12 @@ func TestLoadConfig(t *testing.T) {
 	require.NoError(t, sub.Unmarshal(cfg))
 
 	// Validate that the configuration is correct
-	assert.NoError(t, xconfmap.Validate(cfg))
+	assert.NoError(t, confmap.Validate(cfg))
 
+	storageID := component.MustNewID("file_storage")
 	expected := &Config{
 		TimeoutConfig:  exporterhelper.TimeoutConfig{Timeout: 0},
-		QueueConfig:    configoptional.Some(exporterhelper.QueueBatchConfig{NumConsumers: 10, QueueSize: 1000, BlockOnOverflow: true, WaitForResult: false, Sizer: exporterhelper.RequestSizerTypeRequests}),
+		QueueConfig:    configoptional.Some(exporterhelper.QueueBatchConfig{StorageID: &storageID, NumConsumers: 10, QueueSize: 1000, BlockOnOverflow: true, WaitForResult: false, Sizer: exporterhelper.RequestSizerTypeRequests}),
 		BackOffConfig:  configretry.BackOffConfig{Enabled: true, InitialInterval: 5 * time.Second, RandomizationFactor: 0.5, Multiplier: 1.5, MaxInterval: 30 * time.Second, MaxElapsedTime: 0},
 		AuthType:       "config_file",
 		NamespaceName:  "example-namespace",
@@ -127,11 +141,20 @@ func TestConfigValidate(t *testing.T) {
 				NamespaceName: "test-namespace",
 				LogGroupID:    "test-log-group",
 			},
-			expectedErr: "invalid 'auth_type', supported values are 'config_file', 'instance_principal', and 'workload_identity'",
+			expectedErr: "invalid 'auth_type', supported values are 'config_file', 'instance_principal', 'workload_identity', and 'resource_principal'",
 		},
 		{
 			name:        "Valid config",
 			config:      validConfig,
+			expectedErr: "",
+		},
+		{
+			name: "Valid resource principal config",
+			config: &Config{
+				AuthType:      ResourcePrincipal,
+				NamespaceName: "test-namespace",
+				LogGroupID:    "test-log-group",
+			},
 			expectedErr: "",
 		},
 		{
@@ -154,6 +177,48 @@ func TestConfigValidate(t *testing.T) {
 				},
 			},
 			expectedErr: "'oci_config' field is only applicable when 'auth_type' is set to 'config_file'",
+		},
+		{
+			name: "Resource principal with OCI config",
+			config: &Config{
+				AuthType:      ResourcePrincipal,
+				NamespaceName: "test-namespace",
+				LogGroupID:    "test-log-group",
+				OciConfiguration: OciConfig{
+					FingerPrint: "test",
+				},
+			},
+			expectedErr: "'oci_config' field is only applicable when 'auth_type' is set to 'config_file'",
+		},
+		{
+			name: "Resource principal with OCI config file path",
+			config: &Config{
+				AuthType:       ResourcePrincipal,
+				NamespaceName:  "test-namespace",
+				LogGroupID:     "test-log-group",
+				ConfigFilePath: configopaque.String("/path/to/oci/config"),
+			},
+			expectedErr: "'oci_config_file_path' field is only applicable when 'auth_type' is set to 'config_file'",
+		},
+		{
+			name: "Resource principal with OCI config profile",
+			config: &Config{
+				AuthType:      ResourcePrincipal,
+				NamespaceName: "test-namespace",
+				LogGroupID:    "test-log-group",
+				ConfigProfile: configopaque.String("DEFAULT"),
+			},
+			expectedErr: "'config_profile' field is only applicable when 'auth_type' is set to 'config_file'",
+		},
+		{
+			name: "Resource principal with private key passphrase",
+			config: &Config{
+				AuthType:             ResourcePrincipal,
+				NamespaceName:        "test-namespace",
+				LogGroupID:           "test-log-group",
+				PrivateKeyPassphrase: configopaque.String("test-passphrase"),
+			},
+			expectedErr: "'private_key_passphrase' field is only applicable when 'auth_type' is set to 'config_file'",
 		},
 		{
 			name: "Workload identity with OCI config",
