@@ -1,0 +1,7 @@
+namespace: test-namespace
+log_group_id: test-log-group
+sending_queue:
+  enabled: true
+  storage: ""
+  queue_size: 42
+  num_consumers: 2

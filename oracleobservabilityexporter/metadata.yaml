@@ -10,6 +10,9 @@ status:
 
 tests:
   config:
+    # The generated lifecycle test uses a host without storage extensions.
+    sending_queue:
+      enabled: false
     auth_type: config_file
     namespace: example-namespace
     log_group_id: example-log-group-id
