@@ -13,6 +13,7 @@ jobs:
     name: Validate and publish release
     runs-on: ubuntu-24.04
     env:
+      COLLECTOR_PROVIDER_VERSION: v1.67.0
       MODULE_PATH: github.com/oracle-samples/otel-collector-exporter-oracleobservability/oracleobservabilityexporter
     steps:
       - name: Check out repository
@@ -115,9 +116,9 @@ jobs:
             - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/storage/filestorage ${COLLECTOR_VERSION}
 
           providers:
-            - gomod: go.opentelemetry.io/collector/confmap/provider/envprovider v1.68.0
-            - gomod: go.opentelemetry.io/collector/confmap/provider/fileprovider v1.68.0
-            - gomod: go.opentelemetry.io/collector/confmap/provider/yamlprovider v1.68.0
+            - gomod: go.opentelemetry.io/collector/confmap/provider/envprovider ${COLLECTOR_PROVIDER_VERSION}
+            - gomod: go.opentelemetry.io/collector/confmap/provider/fileprovider ${COLLECTOR_PROVIDER_VERSION}
+            - gomod: go.opentelemetry.io/collector/confmap/provider/yamlprovider ${COLLECTOR_PROVIDER_VERSION}
           EOF
 
       - name: Verify exporter tag is remotely importable
