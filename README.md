@@ -11,8 +11,8 @@ this exporter.
 - Stability: `stable`
 - Go module path: `github.com/oracle-samples/otel-collector-exporter-oracleobservability/oracleobservabilityexporter`
 
-Exporter version `v0.162.0` supports Resource Principal authentication and is
-compatible with OpenTelemetry Collector/Contrib `v0.162.0`. The examples below
+Exporter version `v0.161.0` supports Resource Principal authentication and is
+compatible with OpenTelemetry Collector/Contrib `v0.161.0`. The examples below
 use these versions.
 
 ## Contents
@@ -42,7 +42,7 @@ use these versions.
 
 To use this exporter, you need:
 
-- Go `1.27.2` or later to build exporter and Collector version `v0.162.0`.
+- Go `1.27.3` or later to build exporter and Collector version `v0.161.0`.
   Go is not needed on a host that only runs the compiled binary.
 - OpenTelemetry Collector Builder (`ocb`) for your target Collector version.
 - Access to OCI Log Analytics.
@@ -66,15 +66,15 @@ OpenTelemetry Collector/Contrib version used to build your custom collector.
 
 | Oracle Observability Exporter | OpenTelemetry Collector/Contrib | Status |
 | --- | --- | --- |
-| `v0.162.0` | `v0.162.0` | Stable |
+| `v0.161.0` | `v0.161.0` | Stable |
 | `v0.156.0-dev.1` | `v0.156.0` | Development |
 | `v0.155.0` | `v0.155.0` | Stable |
 | `v0.153.0` | `v0.153.0` | Stable |
 
 Because this exporter is published as a Go module in the
 `oracleobservabilityexporter` folder, repository tags use the submodule tag
-format, for example `oracleobservabilityexporter/v0.162.0`. In an OCB
-manifest, use only the module version, for example `v0.162.0`.
+format, for example `oracleobservabilityexporter/v0.161.0`. In an OCB
+manifest, use only the module version, for example `v0.161.0`.
 
 ## Quick Start
 
@@ -505,9 +505,9 @@ for file input), then rebuild the binary:
 
 ```yaml
 processors:
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/transformprocessor v0.162.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/transformprocessor v0.161.0
 receivers:
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/filelogreceiver v0.162.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/filelogreceiver v0.161.0
 ```
 
 In the Collector configuration, include each configured `transform/...`
@@ -589,29 +589,29 @@ dist:
   output_path: ./_build
 
 exporters:
-  - gomod: github.com/oracle-samples/otel-collector-exporter-oracleobservability/oracleobservabilityexporter v0.162.0
+  - gomod: github.com/oracle-samples/otel-collector-exporter-oracleobservability/oracleobservabilityexporter v0.161.0
 
 receivers:
-  - gomod: go.opentelemetry.io/collector/receiver/otlpreceiver v0.162.0
+  - gomod: go.opentelemetry.io/collector/receiver/otlpreceiver v0.161.0
 
 processors:
-  - gomod: go.opentelemetry.io/collector/processor/batchprocessor v0.162.0
-  - gomod: go.opentelemetry.io/collector/processor/memorylimiterprocessor v0.162.0
+  - gomod: go.opentelemetry.io/collector/processor/batchprocessor v0.161.0
+  - gomod: go.opentelemetry.io/collector/processor/memorylimiterprocessor v0.161.0
 
 extensions:
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/storage/filestorage v0.162.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/storage/filestorage v0.161.0
 
 providers:
-  - gomod: go.opentelemetry.io/collector/confmap/provider/envprovider v1.68.0
-  - gomod: go.opentelemetry.io/collector/confmap/provider/fileprovider v1.68.0
-  - gomod: go.opentelemetry.io/collector/confmap/provider/yamlprovider v1.68.0
+  - gomod: go.opentelemetry.io/collector/confmap/provider/envprovider v1.67.0
+  - gomod: go.opentelemetry.io/collector/confmap/provider/fileprovider v1.67.0
+  - gomod: go.opentelemetry.io/collector/confmap/provider/yamlprovider v1.67.0
 ```
 
 ### 2. Build the binary
 
 ```bash
 mkdir -p .bin
-GOBIN="$PWD/.bin" go install go.opentelemetry.io/collector/cmd/builder@v0.162.0
+GOBIN="$PWD/.bin" go install go.opentelemetry.io/collector/cmd/builder@v0.161.0
 ./.bin/builder --config builder-config.yaml
 ```
 
